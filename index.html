@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EFKT — Most Likely To Buy</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { -webkit-font-smoothing: antialiased; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+// --- SEGMENTS & DATA ---
+const SEGMENTS = [
+  { id: "first-time-young", label: "Førstegangskøber (ung single)", ageRange: "23-29", icon: "🎓", behavior: "Kommer fra lejebolig, søger 1-2V i byen, prisfølsom, digital-first", contentRec: "Video-tours, Instagram Reels, prisudvikling i området, guide til førstegangskøb", color: "#E8604C", triggers: { maxRooms: 2, urban: true, maxPrice: 2500000 } },
+  { id: "first-time-couple", label: "Førstegangskøber (par)", ageRange: "26-34", icon: "💑", behavior: "Par uden børn, opgraderer fra lejlighed, søger 2-3V, nær byliv", contentRec: "Lifestyle-fotos, nabolags-guides, café/restaurant-nærhed, drone-video", color: "#D4513E", triggers: { minRooms: 2, maxRooms: 3, urban: true, maxPrice: 3500000 } },
+  { id: "young-family", label: "Ung børnefamilie", ageRange: "30-38", icon: "👶", behavior: "Første barn på vej/født, flytter fra lejlighed til hus, skoledistrikt vigtigt", contentRec: "Skole-ratings, legepladser i nærhed, familievenlige features, trygt nabolag-content", color: "#C0453A", triggers: { minRooms: 3, maxRooms: 4, suburban: true, minArea: 100 } },
+  { id: "growing-family", label: "Voksende børnefamilie", ageRange: "35-48", icon: "👨‍👩‍👧‍👦", behavior: "2+ børn, søger plads, have, gerne renoveret, villig til at pendle", contentRec: "Havebilleder, børneværelse-inspiration, energimærke-besparelser, lokal sport/fritid", color: "#B8453F", triggers: { minRooms: 4, suburban: true, minArea: 130, garden: true } },
+  { id: "upgrader", label: "Opgradereren", ageRange: "38-52", icon: "📈", behavior: "Har ejet før, sælger for at købe bedre, kvalitetsbevidst, villig til at betale", contentRec: "Premium foto, arkitekt-detaljer, materialevalg, eksklusivt nabolag-content", color: "#2B3A67", triggers: { minPrice: 4000000, minArea: 140, quality: true } },
+  { id: "empty-nester", label: "Empty Nester / Downsizer", ageRange: "52-67", icon: "🏡", behavior: "Børn flyttet, sælger stort hus, søger mindre/nemmere, bynært, vedligeholdelsesfrit", contentRec: "Vedligeholdelsesfri bolig, nærhed til kultur, roligt nabolag, tilgængelighed", color: "#3D5A99", triggers: { maxRooms: 3, maxArea: 110, urban: true, newer: true } },
+  { id: "senior", label: "Senior / Pensionist", ageRange: "65+", icon: "🌿", behavior: "Søger tryghed, ét plan, nær indkøb og læge, ofte lejlighed eller rækkehus", contentRec: "Tilgængeligheds-features, nærhed til service, fællesskab, trygt miljø", color: "#5B7BB4", triggers: { maxRooms: 3, singleFloor: true, maxArea: 100 } },
+  { id: "investor", label: "Investor / Udlejer", ageRange: "30-60", icon: "💼", behavior: "Køber for udlejning/investering, fokus på afkast, beliggenhed og udlejningspotentiale", contentRec: "Afkastberegner, lejeindtægt-estimat, udviklingsplaner for området, markedsdata", color: "#1D2D50", triggers: { urban: true, maxRooms: 3, investment: true } },
+  { id: "rural-dreamer", label: "Landlivsdrømmeren", ageRange: "35-55", icon: "🌾", behavior: "Søger ro og natur, villig til lang pendling eller remote-work, stor grund", contentRec: "Naturbilleder, grund/have-fokus, remote-work setup, lokal community-content", color: "#4A7C59", triggers: { rural: true, minArea: 120, garden: true, largeGround: true } },
+  { id: "renovation-hunter", label: "Renoveringsjægeren", ageRange: "30-50", icon: "🔨", behavior: "Søger underprisede boliger med potentiale, DIY-minded, ser muligheder", contentRec: "Før/efter-billeder, renoveringspotentiale, prisudvikling efter renovering, håndværker-tips", color: "#8B6F47", triggers: { older: true, lowPrice: true, potential: true } },
+];
+
+const MOCK_PROPERTIES = {
+  "skovvej 12, 4300 holbæk": { address: "Skovvej 12, 4300 Holbæk", type: "Parcelhus", year: 1972, area: 148, rooms: 5, floors: 1, groundArea: 823, energy: "D", material: "Mursten", roof: "Tegl", price: 2450000, zone: "suburban" },
+  "vestergade 8, 1456 københavn k": { address: "Vestergade 8, 3. th., 1456 København K", type: "Ejerlejlighed", year: 1898, area: 67, rooms: 2, floors: 1, groundArea: 0, energy: "C", material: "Mursten", roof: "Skifer", price: 3850000, zone: "urban" },
+  "præstøvej 45, 4640 faxe": { address: "Præstøvej 45, 4640 Faxe", type: "Parcelhus", year: 1965, area: 112, rooms: 4, floors: 1, groundArea: 1240, energy: "E", material: "Mursten", roof: "Eternit", price: 1350000, zone: "rural" },
+  "strandvejen 88, 2900 hellerup": { address: "Strandvejen 88, 2900 Hellerup", type: "Villa", year: 2018, area: 220, rooms: 6, floors: 2, groundArea: 650, energy: "A2020", material: "Tegl/Træ", roof: "Tagpap", price: 12500000, zone: "urban-premium" },
+  "søndergade 22, 8700 horsens": { address: "Søndergade 22, 2. sal, 8700 Horsens", type: "Ejerlejlighed", year: 2021, area: 85, rooms: 3, floors: 1, groundArea: 0, energy: "A2020", material: "Beton/Glas", roof: "Fladt", price: 2200000, zone: "urban" },
+  "bakkevej 7, 5792 årslev": { address: "Bakkevej 7, 5792 Årslev", type: "Parcelhus", year: 1988, area: 165, rooms: 5, floors: 2, groundArea: 920, energy: "C", material: "Mursten", roof: "Betontagsten", price: 2850000, zone: "suburban" },
+};
+
+function scoreBuyer(seg, p) {
+  let s = 10; const t = seg.triggers;
+  if (t.minRooms && p.rooms >= t.minRooms) s += 15;
+  if (t.maxRooms && p.rooms <= t.maxRooms) s += 15;
+  if (t.minArea && p.area >= t.minArea) s += 10;
+  if (t.maxArea && p.area <= t.maxArea) s += 12;
+  if (t.urban && (p.zone === "urban" || p.zone === "urban-premium")) s += 18;
+  if (t.suburban && p.zone === "suburban") s += 18;
+  if (t.rural && p.zone === "rural") s += 20;
+  if (t.maxPrice && p.price <= t.maxPrice) s += 12;
+  if (t.minPrice && p.price >= t.minPrice) s += 12;
+  if (t.garden && p.groundArea > 400) s += 10;
+  if (t.largeGround && p.groundArea > 900) s += 10;
+  if (t.newer && p.year >= 2000) s += 10;
+  if (t.older && p.year < 1980) s += 10;
+  if (t.singleFloor && p.floors === 1) s += 8;
+  if (t.quality && p.zone === "urban-premium") s += 15;
+  if (t.lowPrice && p.price < 1800000) s += 12;
+  if (t.investment && p.rooms <= 3 && (p.zone === "urban" || p.zone === "suburban")) s += 14;
+  if (t.urban && p.zone === "rural") s -= 15;
+  if (t.rural && p.zone === "urban") s -= 15;
+  if (t.maxRooms && p.rooms > t.maxRooms + 2) s -= 10;
+  if (t.minRooms && p.rooms < t.minRooms - 1) s -= 10;
+  if (t.maxPrice && p.price > t.maxPrice * 1.5) s -= 15;
+  if (t.maxArea && p.area > t.maxArea * 1.4) s -= 8;
+  const h = seg.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+  s += (h % 7) - 3;
+  return Math.max(0, s);
+}
+
+function predictBuyers(property) {
+  const scores = SEGMENTS.map((seg) => ({ ...seg, rawScore: scoreBuyer(seg, property) }));
+  const total = scores.reduce((sum, s) => sum + s.rawScore, 0);
+  return scores.map((s) => ({ ...s, probability: total > 0 ? Math.round((s.rawScore / total) * 100) : 0 })).sort((a, b) => b.probability - a.probability);
+}
+
+// --- EFKT REAL LOGO ---
+const EFKT_LOGO_URL = "https://framerusercontent.com/images/TFy6XX5mziB3YSfcvr0QYOdldpY.svg";
+
+function EFKTLogo({ height = 24, style = {} }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span style={{ fontFamily: "var(--f)", fontSize: height * 0.9, fontWeight: 800, color: "#E8604C", letterSpacing: "-0.03em", lineHeight: 1, ...style }}>EFKT</span>;
+  return <img src={EFKT_LOGO_URL} alt="EFKT" style={{ height, display: "block", ...style }} onError={() => setFailed(true)} />;
+}
+
+// --- WAVE ---
+function Wave({ color = "#E8604C", op = 0.06, flip = false }) {
+  return (
+    <div style={{ width: "100%", overflow: "hidden", lineHeight: 0, transform: flip ? "rotate(180deg)" : "none" }}>
+      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{ width: "100%", height: 50, display: "block" }}>
+        <path d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,60 L1200,120 L0,120 Z" fill={color} fillOpacity={op} />
+        <path d="M0,60 C150,20 350,90 600,40 C850,0 1050,80 1200,30 L1200,120 L0,120 Z" fill={color} fillOpacity={op * 0.6} />
+      </svg>
+    </div>
+  );
+}
+
+// --- COMPONENTS ---
+function PropertyCard({ property }) {
+  const tags = [
+    { l: property.type, i: "🏠" }, { l: `${property.area} m²`, i: "📐" },
+    { l: `${property.rooms} værelser`, i: "🚪" }, { l: `Opført ${property.year}`, i: "📅" },
+    { l: `Energi ${property.energy}`, i: "⚡" }, { l: property.material, i: "🧱" },
+  ];
+  if (property.groundArea > 0) tags.push({ l: `Grund ${property.groundArea} m²`, i: "🌳" });
+  return (
+    <div style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04)", border: "1px solid #f0eeec", position: "relative", overflow: "hidden" }}>
+      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #E8604C, #D4513E, #C0453A)" }} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <p style={{ fontFamily: "var(--f)", fontSize: 11, fontWeight: 600, color: "#E8604C", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.12em" }}>BBR-data · Syntetisk</p>
+          <h2 style={{ fontFamily: "var(--f)", fontSize: 21, fontWeight: 700, color: "#1a1a2e", margin: 0, letterSpacing: "-0.01em" }}>{property.address}</h2>
+        </div>
+        <div style={{ fontFamily: "var(--f)", fontSize: 22, fontWeight: 800, color: "#1a1a2e", whiteSpace: "nowrap" }}>
+          {(property.price / 1000000).toFixed(1)} <span style={{ fontSize: 14, fontWeight: 500, color: "#7a7a8e" }}>mio. kr.</span>
+        </div>
+      </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 18 }}>
+        {tags.map((tag, idx) => (
+          <span key={idx} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, fontSize: 12.5, fontWeight: 500, fontFamily: "var(--f)", background: "#faf8f6", color: "#4a4a5a", border: "1px solid #eeece8" }}>
+            <span style={{ fontSize: 13 }}>{tag.i}</span> {tag.l}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Bar({ segment, rank, maxProb, isTop }) {
+  const [on, setOn] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setOn(true), 120 + rank * 90); return () => clearTimeout(t); }, [rank]);
+  const w = maxProb > 0 ? (segment.probability / maxProb) * 100 : 0;
+  return (
+    <div style={{ opacity: on ? 1 : 0, transform: on ? "translateY(0)" : "translateY(10px)", transition: "all 0.5s cubic-bezier(0.16,1,0.3,1)", marginBottom: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 12, background: isTop ? "#fdf5f3" : "transparent", border: isTop ? "1px solid #f5ddd8" : "1px solid transparent" }}>
+        <span style={{ fontSize: 19, width: 28, textAlign: "center" }}>{segment.icon}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+            <span style={{ fontFamily: "var(--f)", fontSize: 13, fontWeight: isTop ? 700 : 500, color: isTop ? "#1a1a2e" : "#6a6a7e" }}>{segment.label}</span>
+            <span style={{ fontFamily: "var(--f)", fontSize: 13, fontWeight: 700, color: isTop ? "#E8604C" : "#aaa", marginLeft: 8, whiteSpace: "nowrap" }}>{segment.probability}%</span>
+          </div>
+          <div style={{ height: 5, borderRadius: 3, background: "#f0eeec", overflow: "hidden" }}>
+            <div style={{ height: "100%", borderRadius: 3, background: isTop ? `linear-gradient(90deg,${segment.color},${segment.color}bb)` : "#d0cec8", width: on ? `${w}%` : "0%", transition: "width 0.9s cubic-bezier(0.16,1,0.3,1)", transitionDelay: `${rank*90}ms` }} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Detail({ segment }) {
+  return (
+    <div style={{ background: "#fff", borderRadius: 14, padding: "22px 26px", marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)", border: "1px solid #f0eeec", borderLeft: `4px solid ${segment.color}` }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <span style={{ fontSize: 26, width: 46, height: 46, display: "flex", alignItems: "center", justifyContent: "center", background: `${segment.color}10`, borderRadius: 12 }}>{segment.icon}</span>
+        <div>
+          <h3 style={{ fontFamily: "var(--f)", fontSize: 16, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>{segment.label}</h3>
+          <span style={{ fontFamily: "var(--f)", fontSize: 12, color: segment.color, fontWeight: 600 }}>Alder: {segment.ageRange} · Sandsynlighed: {segment.probability}%</span>
+        </div>
+      </div>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ fontFamily: "var(--f)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#aaa", marginBottom: 4 }}>Adfærdsprofil</div>
+        <p style={{ fontFamily: "var(--f)", fontSize: 13.5, lineHeight: 1.6, color: "#4a4a5a", margin: 0 }}>{segment.behavior}</p>
+      </div>
+      <div>
+        <div style={{ fontFamily: "var(--f)", fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#aaa", marginBottom: 4 }}>Anbefalet content</div>
+        <p style={{ fontFamily: "var(--f)", fontSize: 13.5, lineHeight: 1.6, color: "#E8604C", margin: 0, fontWeight: 600 }}>{segment.contentRec}</p>
+      </div>
+    </div>
+  );
+}
+
+function Suggestions({ onSelect }) {
+  const list = [
+    { d: "Skovvej 12, 4300 Holbæk", k: "skovvej 12, 4300 holbæk", s: "Parcelhus · 148m² · 5V" },
+    { d: "Vestergade 8, 1456 Kbh K", k: "vestergade 8, 1456 københavn k", s: "Lejlighed · 67m² · 2V" },
+    { d: "Præstøvej 45, 4640 Faxe", k: "præstøvej 45, 4640 faxe", s: "Parcelhus · 112m² · 4V" },
+    { d: "Strandvejen 88, 2900 Hellerup", k: "strandvejen 88, 2900 hellerup", s: "Villa · 220m² · 6V" },
+    { d: "Søndergade 22, 8700 Horsens", k: "søndergade 22, 2. sal, 8700 horsens", s: "Lejlighed · 85m² · 3V" },
+    { d: "Bakkevej 7, 5792 Årslev", k: "bakkevej 7, 5792 årslev", s: "Parcelhus · 165m² · 5V" },
+  ];
+  return (
+    <div style={{ marginTop: 28 }}>
+      <p style={{ fontFamily: "var(--f)", fontSize: 11, color: "#999", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12, fontWeight: 700 }}>Prøv en af disse adresser</p>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 8 }}>
+        {list.map((ex) => (
+          <button key={ex.k} onClick={() => onSelect(ex.k)} style={{ textAlign: "left", padding: "14px 18px", borderRadius: 12, background: "#fff", border: "1px solid #eeece8", cursor: "pointer", transition: "all 0.2s", fontFamily: "var(--f)", boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E8604C"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(232,96,76,0.12)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#eeece8"; e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.03)"; e.currentTarget.style.transform = "translateY(0)"; }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1a1a2e" }}>{ex.d}</div>
+            <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>{ex.s}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// --- MAIN APP ---
+function App() {
+  const [address, setAddress] = useState("");
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [showDetail, setShowDetail] = useState(true);
+
+  function go(q) {
+    const n = (q || address).toLowerCase().trim();
+    setLoading(true); setResult(null);
+    setTimeout(() => {
+      const key = Object.keys(MOCK_PROPERTIES).find((k) => n.includes(k) || k.includes(n));
+      if (key) { const p = MOCK_PROPERTIES[key]; setResult({ property: p, buyers: predictBuyers(p) }); setAddress(p.address); }
+      else setResult({ notFound: true });
+      setLoading(false);
+    }, 900);
+  }
+
+  const top3 = result?.buyers?.filter((b) => b.probability > 0).slice(0, 3) || [];
+
+  return (
+    <div style={{ "--f": "'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif", minHeight: "100vh", background: "#faf8f6", color: "#1a1a2e" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}} @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}`}</style>
+
+      {/* HEADER with real EFKT logo */}
+      <div style={{ background: "#fff", borderBottom: "1px solid #f0eeec", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <EFKTLogo height={22} />
+          <div style={{ width: 1, height: 20, background: "#e8e6e2" }} />
+          <span style={{ fontFamily: "var(--f)", fontSize: 13, fontWeight: 600, color: "#7a7a8e", letterSpacing: "0.02em" }}>Most Likely To Buy</span>
+        </div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 14px", borderRadius: 20, background: "#fef3f1", color: "#E8604C", fontSize: 11, fontWeight: 700, fontFamily: "var(--f)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8604C", animation: "pulse 2s infinite" }} />
+          Prototype
+        </div>
+      </div>
+
+      {/* DARK HERO */}
+      <div style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #2B3A67 100%)", padding: "52px 24px 0", textAlign: "center", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", top: -80, right: -80, width: 260, height: 260, borderRadius: "50%", background: "rgba(232,96,76,0.08)" }} />
+        <div style={{ position: "absolute", bottom: -40, left: -60, width: 180, height: 180, borderRadius: "50%", background: "rgba(232,96,76,0.05)" }} />
+
+        <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto" }}>
+          <h1 style={{ fontFamily: "var(--f)", fontSize: 36, fontWeight: 800, color: "#fff", margin: "0 0 8px", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
+            Forudsig den <span style={{ color: "#E8604C" }}>rette køber</span>
+          </h1>
+          <p style={{ fontFamily: "var(--f)", fontSize: 15, color: "rgba(255,255,255,0.55)", margin: "0 0 32px", lineHeight: 1.6 }}>
+            Indtast en adresse og se hvilke købersegmenter der med størst sandsynlighed matcher boligen — og få content-anbefalinger der taler til dem.
+          </p>
+
+          <div style={{ display: "flex", maxWidth: 560, margin: "0 auto", background: "#fff", borderRadius: 14, boxShadow: "0 4px 24px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "center", paddingLeft: 18 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} placeholder="Indtast en adresse..."
+              style={{ flex: 1, padding: "16px 14px", border: "none", background: "transparent", color: "#1a1a2e", fontSize: 15, fontFamily: "var(--f)", outline: "none" }} />
+            <button onClick={() => go()} disabled={loading}
+              style={{ padding: "14px 28px", border: "none", margin: 5, borderRadius: 10, background: loading ? "#ccc" : "#E8604C", color: "#fff", fontFamily: "var(--f)", fontSize: 14, fontWeight: 700, cursor: loading ? "wait" : "pointer", transition: "all 0.2s", whiteSpace: "nowrap" }}
+              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#D4513E"; }}
+              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "#E8604C"; }}>
+              {loading ? "Analyserer..." : "Analysér"}
+            </button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 24 }}><Wave /></div>
+      </div>
+
+      {/* CONTENT */}
+      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 80px" }}>
+        {!result && !loading && <Suggestions onSelect={(k) => { setAddress(k); go(k); }} />}
+
+        {loading && (
+          <div style={{ textAlign: "center", padding: "56px 0" }}>
+            <div style={{ width: 36, height: 36, margin: "0 auto 14px", border: "3px solid #f0eeec", borderTopColor: "#E8604C", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+            <p style={{ fontFamily: "var(--f)", fontSize: 13, color: "#999" }}>Henter BBR-data · Kører segmenteringsmodel...</p>
+          </div>
+        )}
+
+        {result?.notFound && (
+          <div style={{ textAlign: "center", padding: "44px 20px", marginTop: 28, background: "#fff", borderRadius: 16, border: "1px solid #f0eeec" }}>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>🏠</div>
+            <p style={{ fontFamily: "var(--f)", fontSize: 15, color: "#4a4a5a", fontWeight: 600 }}>Adressen blev ikke fundet i vores syntetiske datasæt.</p>
+            <Suggestions onSelect={(k) => { setAddress(k); go(k); }} />
+          </div>
+        )}
+
+        {result?.property && (
+          <div style={{ marginTop: 28, animation: "fadeUp 0.5s ease-out" }}>
+            <PropertyCard property={result.property} />
+
+            <div style={{ background: "#fff", borderRadius: 16, padding: "24px 28px", marginBottom: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)", border: "1px solid #f0eeec" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                <h3 style={{ fontFamily: "var(--f)", fontSize: 17, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Købersandsynlighed</h3>
+                <span style={{ fontFamily: "var(--f)", fontSize: 11, color: "#bbb", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{SEGMENTS.length} segmenter · v1.0</span>
+              </div>
+              {result.buyers.filter(b => b.probability > 0).map((seg, i) => <Bar key={seg.id} segment={seg} rank={i} maxProb={result.buyers[0]?.probability || 1} isTop={i < 3} />)}
+            </div>
+
+            <div style={{ margin: "8px 0" }}><Wave flip /></div>
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, marginTop: 8 }}>
+              <h3 style={{ fontFamily: "var(--f)", fontSize: 17, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Top 3 · Profil & <span style={{ color: "#E8604C" }}>Content-anbefaling</span></h3>
+              <button onClick={() => setShowDetail(!showDetail)} style={{ background: "#fff", border: "1px solid #eeece8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "var(--f)", fontSize: 12, fontWeight: 600, color: "#7a7a8e" }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = "#E8604C"}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = "#eeece8"}>
+                {showDetail ? "Skjul" : "Vis"} detaljer
+              </button>
+            </div>
+            {showDetail && top3.map((seg) => <Detail key={seg.id} segment={seg} />)}
+
+            <div style={{ marginTop: 28, padding: "20px 24px", borderRadius: 12, background: "#fff", border: "1px solid #f0eeec" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fef3f1", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8604C" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                </div>
+                <p style={{ fontFamily: "var(--f)", fontSize: 12, color: "#999", margin: 0, lineHeight: 1.65 }}>
+                  <strong style={{ color: "#7a7a8e" }}>Om modellen:</strong> Denne prototype bruger en regelbaseret scoringsmodel med syntetisk data. I produktion erstattes den med en gradient-boosted classifier (XGBoost/LightGBM) trænet på historiske handler fra Tinglysningen, beriget med BBR, DST og GeoData.
+                </p>
+              </div>
+            </div>
+
+            <div style={{ textAlign: "center", marginTop: 36, paddingTop: 20, borderTop: "1px solid #f0eeec" }}>
+              <EFKTLogo height={18} style={{ opacity: 0.3, margin: "0 auto" }} />
+              <p style={{ fontFamily: "var(--f)", fontSize: 11, color: "#ccc", marginTop: 6 }}>#WeCreateEFKT</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
+  </script>
+</body>
+</html>
