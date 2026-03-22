@@ -1,322 +1,478 @@
 <!DOCTYPE html>
 <html lang="da">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EFKT · Most Likely To Buy</title>
-  <meta name="description" content="Forudsig køberprofilen for enhver bolig — MLTB Prototype by EFKT" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Plus Jakarta Sans', 'Helvetica Neue', Arial, sans-serif; background: #faf8f6; color: #1a1a2e; -webkit-font-smoothing: antialiased; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
-    input::placeholder { color: #bbb; }
-    button { font-family: inherit; }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>EFKT · Most Likely To Buy v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif;background:#faf8f6;color:#1a1a2e;-webkit-font-smoothing:antialiased}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:1}}
+input::placeholder{color:#bbb}
+button{font-family:inherit}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center}
+.modal{background:#fff;border-radius:16px;max-width:700px;width:95%;max-height:85vh;overflow-y:auto;padding:32px;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-const { useState, useEffect } = React;
-const F = "'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif";
+<div id="root"></div>
+<script type="text/babel">
 const EFKT_LOGO = "data:image/png;base64,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";
+const PRODUCTS = [{"name": "Opstart inkl. vejrgaranti", "category": "Opstart", "price": 795, "sizes": {"<75": 1, "75-150": 1, "150-250": 1, ">250": 1}, "segments": {}}, {"name": "Hosting", "category": "Opstart", "price": 57, "sizes": {"<75": 1, "75-150": 1, "150-250": 1, ">250": 1}, "segments": {}}, {"name": "Ekstra tid til sagen", "category": "Gebyr", "price": 227, "sizes": {}, "segments": {}}, {"name": "Service gebyr", "category": "Gebyr", "price": 40, "sizes": {}, "segments": {}}, {"name": "Drone Billede med og uden Pil (Min. 3 stk.)", "category": "Still billede - Premium", "price": 929, "sizes": {}, "segments": {"Den erfarne køber": 1, "Investor / Udlejer": 1}}, {"name": "Drone Billede med og uden Pil (Min. 10 stk.)", "category": "Still billede - Premium", "price": 1494, "sizes": {}, "segments": {"Landlivsdrømmeren": 1}}, {"name": "Stemningsbillede, inden- og udendørs", "category": "Still billede - Premium", "price": 57, "sizes": {}, "segments": {"Voksende børnefamilie": 3, "Den erfarne køber": 5, "Empty Nester / Downsizer": 5}}, {"name": "Stemningsbillede Vertikal, inden- og udendørs", "category": "Still billede - Premium", "price": 57, "sizes": {}, "segments": {}}, {"name": "Stillbillede, inden- og udendørs", "category": "Still billede - Premium", "price": 46, "sizes": {"<75": 10, "75-150": 15, "150-250": 20, ">250": 25}, "segments": {}}, {"name": "Stillbillede, indendørs", "category": "Still billede - Premium", "price": 46, "sizes": {}, "segments": {}}, {"name": "Stillbillede, udendørs", "category": "Still billede - Premium", "price": 46, "sizes": {}, "segments": {}}, {"name": "Stillbillede Vertikal, inden- og udendørs", "category": "Still billede - Premium", "price": 46, "sizes": {}, "segments": {"Førstegangskøber (single)": 5, "Førstegangskøber (par)": 5, "Ung børnefamilie": 5}}, {"name": "Maste Billede (Min. 2 stk.)", "category": "Still billede - Premium", "price": 98, "sizes": {}, "segments": {}}, {"name": "Collage Billede", "category": "Still billede - Premium", "price": 450, "sizes": {}, "segments": {}}, {"name": "Visualiseret Aftenstemning", "category": "Still billede - Premium", "price": 114, "sizes": {}, "segments": {}}, {"name": "Lige På Billede", "category": "Still billede - Premium", "price": 57, "sizes": {}, "segments": {"Voksende børnefamilie": 2, "Den erfarne køber": 5, "Empty Nester / Downsizer": 3}}, {"name": "Lige På Billede Vertikal", "category": "Still billede - Premium", "price": 57, "sizes": {}, "segments": {"Førstegangskøber (single)": 2, "Førstegangskøber (par)": 2, "Ung børnefamilie": 2}}, {"name": "Nærområdebillede", "category": "Still billede - Premium", "price": 85, "sizes": {}, "segments": {"Ung børnefamilie": 3, "Voksende børnefamilie": 3, "Investor / Udlejer": 3}}, {"name": "Aften billede", "category": "Still billede - Premium", "price": 565, "sizes": {}, "segments": {}}, {"name": "Grundtegning", "category": "Plantegning", "price": 356, "sizes": {}, "segments": {}}, {"name": "2D Plantegning / under 500 m2", "category": "Plantegning", "price": 396, "sizes": {"<75": 1, "75-150": 1, "150-250": 1, ">250": 1}, "segments": {}}, {"name": "Billede til Film", "category": "Film Web", "price": 459, "sizes": {}, "segments": {"Ung børnefamilie": 1, "Senior / Pensionist": 1, "Investor / Udlejer": 1, "Renoveringsjægeren": 1}}, {"name": "Roomflow", "category": "Film Web", "price": 672, "sizes": {}, "segments": {"Voksende børnefamilie": 1}}, {"name": "Roomflow med Drone", "category": "Film Web", "price": 1522, "sizes": {}, "segments": {}}, {"name": "Roomflow med Drone og Mæglerintro", "category": "Film Web", "price": 1772, "sizes": {}, "segments": {}}, {"name": "Roomflow med Mæglerintro", "category": "Film Web", "price": 1122, "sizes": {}, "segments": {}}, {"name": "Web Film med Drone", "category": "Film Web", "price": 1629, "sizes": {}, "segments": {"Landlivsdrømmeren": 1}}, {"name": "Dronefilm", "category": "Film Web", "price": 1768, "sizes": {}, "segments": {}}, {"name": "Web Film med Mægler og Drone", "category": "Film Web", "price": 1879, "sizes": {}, "segments": {}}, {"name": "Web Film", "category": "Film Web", "price": 779, "sizes": {}, "segments": {"Empty Nester / Downsizer": 1}}, {"name": "Web Film Liebhaver med Drone", "category": "Film Web", "price": 2240, "sizes": {}, "segments": {}}, {"name": "Web Film med Mægler", "category": "Film Web", "price": 1229, "sizes": {}, "segments": {}}, {"name": "Web Film Liebhaver med Mægler", "category": "Film Web", "price": 1840, "sizes": {}, "segments": {}}, {"name": "Web Film Liebhaver", "category": "Film Web", "price": 1390, "sizes": {}, "segments": {"Den erfarne køber": 1}}, {"name": "Billede til Film SoMe", "category": "Film SoMe", "price": 459, "sizes": {}, "segments": {"Investor / Udlejer": 1, "Renoveringsjægeren": 1}}, {"name": "Roomflow Vertikal", "category": "Film SoMe", "price": 672, "sizes": {}, "segments": {}}, {"name": "Roomflow Vertikal med Drone", "category": "Film SoMe", "price": 1522, "sizes": {}, "segments": {}}, {"name": "Roomflow Vertikal med Mægler og Drone", "category": "Film SoMe", "price": 1772, "sizes": {}, "segments": {}}, {"name": "Roomflow Vertikal med Mægler", "category": "Film SoMe", "price": 1122, "sizes": {}, "segments": {"Førstegangskøber (single)": 1, "Førstegangskøber (par)": 1, "Ung børnefamilie": 1, "Voksende børnefamilie": 1}}, {"name": "SoMe Film Standard med Drone", "category": "Film SoMe", "price": 1629, "sizes": {}, "segments": {"Landlivsdrømmeren": 1}}, {"name": "SoMe Split med Mægler", "category": "Film SoMe", "price": 1332, "sizes": {}, "segments": {}}, {"name": "SoMe Film Standard", "category": "Film SoMe", "price": 779, "sizes": {}, "segments": {"Empty Nester / Downsizer": 1}}, {"name": "SoMe Film Split", "category": "Film SoMe", "price": 882, "sizes": {}, "segments": {}}, {"name": "SoMe Film Standard med Mægler", "category": "Film SoMe", "price": 1229, "sizes": {}, "segments": {}}, {"name": "SoMe Film Liebhaver med Drone", "category": "Film SoMe", "price": 2192, "sizes": {}, "segments": {"Den erfarne køber": 1}}, {"name": "Vertikal Liebhaver med Mægler", "category": "Film SoMe", "price": 1792, "sizes": {}, "segments": {}}, {"name": "SoMe Film Liebhaver", "category": "Film SoMe", "price": 1342, "sizes": {}, "segments": {}}, {"name": "Boligtext Essential", "category": "Tekst", "price": 413, "sizes": {}, "segments": {"Førstegangskøber (single)": 1, "Førstegangskøber (par)": 1, "Ung børnefamilie": 1, "Investor / Udlejer": 1, "Landlivsdrømmeren": 1, "Renoveringsjægeren": 1}}, {"name": "Boligtekst Classic", "category": "Tekst", "price": 673, "sizes": {}, "segments": {"Voksende børnefamilie": 1, "Den erfarne køber": 1}}, {"name": "Boligtekst Premium", "category": "Tekst", "price": 899, "sizes": {}, "segments": {"Empty Nester / Downsizer": 1, "Senior / Pensionist": 1}}, {"name": "Boligtekst Luxury", "category": "Tekst", "price": 1125, "sizes": {}, "segments": {}}, {"name": "SoMe Tekst", "category": "Tekst", "price": 227, "sizes": {}, "segments": {}}, {"name": "Boligtekst Classic m. Bullets", "category": "Tekst", "price": 786, "sizes": {}, "segments": {}}, {"name": "Boligtekst Classic m. SoMe", "category": "Tekst", "price": 899, "sizes": {}, "segments": {}}, {"name": "Boligtekst Lille Pakke Classic", "category": "Tekst", "price": 786, "sizes": {}, "segments": {}}, {"name": "Boligtekst Lille Pakke Classic, med SoMe", "category": "Tekst", "price": 1012, "sizes": {}, "segments": {}}, {"name": "Boligtekst Stor Pakke Classic", "category": "Tekst", "price": 899, "sizes": {}, "segments": {}}, {"name": "Boligtekst Lille Pakke Premium", "category": "Tekst", "price": 1012, "sizes": {}, "segments": {}}, {"name": "Boligtekst Stor Pakke Premium", "category": "Tekst", "price": 1125, "sizes": {}, "segments": {}}, {"name": "Erhverv Tekst", "category": "Tekst Erhverv", "price": 899, "sizes": {}, "segments": {}}];
 
+const {useState,useEffect,useMemo,useCallback} = React;
+const F = "'Plus Jakarta Sans','Helvetica Neue',Arial,sans-serif";
+
+// ============================================================
+// SEGMENTS & BAYESIAN MODEL (same as v2)
+// ============================================================
 const SEGMENTS = [
-  { id: "first-time-young", label: "Førstegangskøber (ung single)", ageRange: "23-29", icon: "🎓", behavior: "Kommer fra lejebolig, søger 1-2V i byen, prisfølsom, digital-first", contentRec: "Video-tours, Instagram Reels, prisudvikling i området, guide til førstegangskøb", color: "#E8604C", triggers: { maxRooms: 2, urban: true, maxPrice: 2500000 } },
-  { id: "first-time-couple", label: "Førstegangskøber (par)", ageRange: "26-34", icon: "💑", behavior: "Par uden børn, opgraderer fra lejlighed, søger 2-3V, nær byliv", contentRec: "Lifestyle-fotos, nabolags-guides, café/restaurant-nærhed, drone-video", color: "#D4513E", triggers: { minRooms: 2, maxRooms: 3, urban: true, maxPrice: 3500000 } },
-  { id: "young-family", label: "Ung børnefamilie", ageRange: "30-38", icon: "👶", behavior: "Første barn på vej/født, flytter fra lejlighed til hus, skoledistrikt vigtigt", contentRec: "Skole-ratings, legepladser i nærhed, familievenlige features, trygt nabolag-content", color: "#C0453A", triggers: { minRooms: 3, maxRooms: 4, suburban: true, minArea: 100 } },
-  { id: "growing-family", label: "Voksende børnefamilie", ageRange: "35-48", icon: "👨‍👩‍👧‍👦", behavior: "2+ børn, søger plads, have, gerne renoveret, villig til at pendle", contentRec: "Havebilleder, børneværelse-inspiration, energimærke-besparelser, lokal sport/fritid", color: "#B8453F", triggers: { minRooms: 4, suburban: true, minArea: 130, garden: true } },
-  { id: "upgrader", label: "Opgradereren", ageRange: "38-52", icon: "📈", behavior: "Har ejet før, sælger for at købe bedre, kvalitetsbevidst, villig til at betale", contentRec: "Premium foto, arkitekt-detaljer, materialevalg, eksklusivt nabolag-content", color: "#2B3A67", triggers: { minPrice: 4000000, minArea: 140, quality: true } },
-  { id: "empty-nester", label: "Empty Nester / Downsizer", ageRange: "52-67", icon: "🏡", behavior: "Børn flyttet, sælger stort hus, søger mindre/nemmere, bynært, vedligeholdelsesfrit", contentRec: "Vedligeholdelsesfri bolig, nærhed til kultur, roligt nabolag, tilgængelighed", color: "#3D5A99", triggers: { maxRooms: 3, maxArea: 110, urban: true, newer: true } },
-  { id: "senior", label: "Senior / Pensionist", ageRange: "65+", icon: "🌿", behavior: "Søger tryghed, ét plan, nær indkøb og læge, ofte lejlighed eller rækkehus", contentRec: "Tilgængeligheds-features, nærhed til service, fællesskab, trygt miljø", color: "#5B7BB4", triggers: { maxRooms: 3, singleFloor: true, maxArea: 100 } },
-  { id: "investor", label: "Investor / Udlejer", ageRange: "30-60", icon: "💼", behavior: "Køber for udlejning/investering, fokus på afkast, beliggenhed og udlejningspotentiale", contentRec: "Afkastberegner, lejeindtægt-estimat, udviklingsplaner for området, markedsdata", color: "#1D2D50", triggers: { urban: true, maxRooms: 3, investment: true } },
-  { id: "rural-dreamer", label: "Landlivsdrømmeren", ageRange: "35-55", icon: "🌾", behavior: "Søger ro og natur, villig til lang pendling eller remote-work, stor grund", contentRec: "Naturbilleder, grund/have-fokus, remote-work setup, lokal community-content", color: "#4A7C59", triggers: { rural: true, minArea: 120, garden: true, largeGround: true } },
-  { id: "renovation-hunter", label: "Renoveringsjægeren", ageRange: "30-50", icon: "🔨", behavior: "Søger underprisede boliger med potentiale, DIY-minded, ser muligheder", contentRec: "Før/efter-billeder, renoveringspotentiale, prisudvikling efter renovering, håndværker-tips", color: "#8B6F47", triggers: { older: true, lowPrice: true, potential: true } },
+  { id:"first-single", label:"Førstegangskøber (single)", ageRange:"23-30", icon:"🎓", color:"#E8604C",
+    profile:{ area:{mean:62,sd:18}, rooms:{mean:2.1,sd:0.6}, price:{mean:1800000,sd:700000}, year:{mean:1955,sd:45}, groundArea:{mean:0,sd:50}, floors:{mean:1,sd:0.3},
+      zoneAffinity:{urban:0.75,"urban-premium":0.10,suburban:0.12,rural:0.03}, typeAffinity:{"Ejerlejlighed":0.82,"Parcelhus":0.08,"Rækkehus":0.07,"Villa":0.02},
+      energyPref:{modern:0.3,neutral:0.5,old:0.2}}, basePrior:0.12 },
+  { id:"first-couple", label:"Førstegangskøber (par)", ageRange:"26-35", icon:"💑", color:"#D4513E",
+    profile:{ area:{mean:82,sd:22}, rooms:{mean:2.8,sd:0.7}, price:{mean:2800000,sd:1000000}, year:{mean:1960,sd:40}, groundArea:{mean:20,sd:80}, floors:{mean:1,sd:0.5},
+      zoneAffinity:{urban:0.55,"urban-premium":0.15,suburban:0.25,rural:0.05}, typeAffinity:{"Ejerlejlighed":0.55,"Parcelhus":0.15,"Rækkehus":0.20,"Villa":0.08},
+      energyPref:{modern:0.35,neutral:0.45,old:0.2}}, basePrior:0.14 },
+  { id:"young-family", label:"Ung børnefamilie", ageRange:"30-39", icon:"👶", color:"#C0453A",
+    profile:{ area:{mean:128,sd:28}, rooms:{mean:3.8,sd:0.7}, price:{mean:3200000,sd:1200000}, year:{mean:1975,sd:30}, groundArea:{mean:550,sd:300}, floors:{mean:1.3,sd:0.5},
+      zoneAffinity:{urban:0.10,"urban-premium":0.08,suburban:0.65,rural:0.17}, typeAffinity:{"Ejerlejlighed":0.05,"Parcelhus":0.55,"Rækkehus":0.25,"Villa":0.12},
+      energyPref:{modern:0.3,neutral:0.45,old:0.25}}, basePrior:0.18 },
+  { id:"growing-family", label:"Voksende børnefamilie", ageRange:"35-48", icon:"👨‍👩‍👧‍👦", color:"#B8453F",
+    profile:{ area:{mean:162,sd:30}, rooms:{mean:4.8,sd:0.8}, price:{mean:3800000,sd:1500000}, year:{mean:1978,sd:25}, groundArea:{mean:850,sd:350}, floors:{mean:1.5,sd:0.5},
+      zoneAffinity:{urban:0.05,"urban-premium":0.05,suburban:0.60,rural:0.30}, typeAffinity:{"Ejerlejlighed":0.02,"Parcelhus":0.65,"Rækkehus":0.08,"Villa":0.23},
+      energyPref:{modern:0.25,neutral:0.40,old:0.35}}, basePrior:0.12 },
+  { id:"experienced", label:"Den erfarne køber", ageRange:"38-55", icon:"🏆", color:"#2B3A67",
+    profile:{ area:{mean:195,sd:45}, rooms:{mean:5.2,sd:1.2}, price:{mean:7500000,sd:3500000}, year:{mean:2000,sd:30}, groundArea:{mean:700,sd:400}, floors:{mean:1.8,sd:0.6},
+      zoneAffinity:{urban:0.20,"urban-premium":0.45,suburban:0.30,rural:0.05}, typeAffinity:{"Ejerlejlighed":0.15,"Parcelhus":0.25,"Rækkehus":0.05,"Villa":0.53},
+      energyPref:{modern:0.55,neutral:0.35,old:0.10}}, basePrior:0.08 },
+  { id:"downsizer", label:"Empty Nester / Downsizer", ageRange:"52-68", icon:"🏡", color:"#3D5A99",
+    profile:{ area:{mean:95,sd:25}, rooms:{mean:3.0,sd:0.7}, price:{mean:3000000,sd:1500000}, year:{mean:2005,sd:25}, groundArea:{mean:100,sd:200}, floors:{mean:1,sd:0.3},
+      zoneAffinity:{urban:0.40,"urban-premium":0.20,suburban:0.35,rural:0.05}, typeAffinity:{"Ejerlejlighed":0.40,"Parcelhus":0.10,"Rækkehus":0.35,"Villa":0.12},
+      energyPref:{modern:0.55,neutral:0.35,old:0.10}}, basePrior:0.10 },
+  { id:"senior", label:"Senior / Pensionist", ageRange:"65+", icon:"🌿", color:"#5B7BB4",
+    profile:{ area:{mean:78,sd:20}, rooms:{mean:2.5,sd:0.6}, price:{mean:2200000,sd:1000000}, year:{mean:2000,sd:30}, groundArea:{mean:50,sd:150}, floors:{mean:1,sd:0.2},
+      zoneAffinity:{urban:0.45,"urban-premium":0.10,suburban:0.40,rural:0.05}, typeAffinity:{"Ejerlejlighed":0.50,"Parcelhus":0.10,"Rækkehus":0.30,"Villa":0.05},
+      energyPref:{modern:0.50,neutral:0.35,old:0.15}}, basePrior:0.07 },
+  { id:"investor", label:"Investor / Udlejer", ageRange:"30-60", icon:"💼", color:"#1D2D50",
+    profile:{ area:{mean:65,sd:22}, rooms:{mean:2.2,sd:0.7}, price:{mean:2000000,sd:900000}, year:{mean:1965,sd:40}, groundArea:{mean:0,sd:50}, floors:{mean:1,sd:0.3},
+      zoneAffinity:{urban:0.65,"urban-premium":0.15,suburban:0.18,rural:0.02}, typeAffinity:{"Ejerlejlighed":0.75,"Parcelhus":0.05,"Rækkehus":0.10,"Villa":0.05},
+      energyPref:{modern:0.25,neutral:0.45,old:0.30}}, basePrior:0.06 },
+  { id:"rural-dreamer", label:"Landlivsdrømmeren", ageRange:"32-55", icon:"🌾", color:"#4A7C59",
+    profile:{ area:{mean:145,sd:40}, rooms:{mean:4.2,sd:1.0}, price:{mean:1800000,sd:900000}, year:{mean:1950,sd:40}, groundArea:{mean:2500,sd:2000}, floors:{mean:1.2,sd:0.5},
+      zoneAffinity:{urban:0.02,"urban-premium":0.01,suburban:0.12,rural:0.85}, typeAffinity:{"Ejerlejlighed":0.01,"Parcelhus":0.45,"Rækkehus":0.02,"Villa":0.40},
+      energyPref:{modern:0.10,neutral:0.30,old:0.60}}, basePrior:0.06 },
+  { id:"renovator", label:"Renoveringsjægeren", ageRange:"28-50", icon:"🔨", color:"#8B6F47",
+    profile:{ area:{mean:120,sd:35}, rooms:{mean:3.5,sd:1.0}, price:{mean:1500000,sd:700000}, year:{mean:1945,sd:30}, groundArea:{mean:500,sd:400}, floors:{mean:1.2,sd:0.5},
+      zoneAffinity:{urban:0.20,"urban-premium":0.02,suburban:0.40,rural:0.38}, typeAffinity:{"Ejerlejlighed":0.15,"Parcelhus":0.50,"Rækkehus":0.10,"Villa":0.20},
+      energyPref:{modern:0.05,neutral:0.20,old:0.75}}, basePrior:0.07 },
 ];
 
+const SEG_LABELS = SEGMENTS.map(s => s.label);
+
+function gaussLL(x,m,s){if(s<=0)return 0;const z=(x-m)/s;return -0.5*z*z-Math.log(s)}
+function eCat(e){if(!e)return"neutral";if(e.startsWith("A")||e==="B")return"modern";if(e==="C"||e==="D")return"neutral";return"old"}
+
+function predictV2(prop) {
+  const res = SEGMENTS.map(seg => {
+    const p = seg.profile; let ls = Math.log(seg.basePrior+0.001);
+    ls += gaussLL(prop.area,p.area.mean,p.area.sd)*1.5;
+    ls += gaussLL(prop.rooms,p.rooms.mean,p.rooms.sd)*1.8;
+    ls += gaussLL(prop.price,p.price.mean,p.price.sd)*1.3;
+    ls += gaussLL(prop.year,p.year.mean,p.year.sd)*0.6;
+    ls += gaussLL(prop.groundArea,p.groundArea.mean,p.groundArea.sd)*1.0;
+    ls += gaussLL(prop.floors,p.floors.mean,p.floors.sd)*0.4;
+    ls += Math.log((p.zoneAffinity[prop.zone]||0.05)+0.001)*2.0;
+    ls += Math.log((p.typeAffinity[prop.type]||0.05)+0.001)*1.6;
+    ls += Math.log((p.energyPref[eCat(prop.energy)]||0.3)+0.001)*0.5;
+    const ppm2=prop.price/Math.max(prop.area,1);const ePpm2=p.price.mean/Math.max(p.area.mean,1);
+    ls += gaussLL(ppm2,ePpm2,ePpm2*0.4)*0.8;
+    return {...seg, logScore:ls};
+  });
+  const mx = Math.max(...res.map(r=>r.logScore));
+  const ex = res.map(r=>({...r, expScore:Math.exp(r.logScore-mx)}));
+  const sm = ex.reduce((s,r)=>s+r.expScore,0);
+  return ex.map(r=>({...r, probability:Math.round((r.expScore/sm)*100)})).sort((a,b)=>b.probability-a.probability);
+}
+
+function getSizeBracket(area) {
+  if (area < 75) return "<75";
+  if (area <= 150) return "75-150";
+  if (area <= 250) return "150-250";
+  return ">250";
+}
+
+// Build recommended package
+function buildPackage(segmentLabel, area) {
+  const sizeBracket = getSizeBracket(area);
+  const items = [];
+
+  // 1. Add size-based products (always included)
+  PRODUCTS.forEach(p => {
+    const count = p.sizes[sizeBracket];
+    if (count && count > 0) {
+      items.push({ ...p, qty: count, source: "size" });
+    }
+  });
+
+  // 2. Add segment-based products
+  let filmWebAdded = false;
+  let filmSoMeAdded = false;
+
+  PRODUCTS.forEach(p => {
+    const count = p.segments[segmentLabel];
+    if (!count || count <= 0) return;
+
+    // Enforce max 1 Film Web / 1 Film SoMe
+    if (p.category === "Film Web") {
+      if (filmWebAdded) return;
+      filmWebAdded = true;
+    }
+    if (p.category === "Film SoMe") {
+      if (filmSoMeAdded) return;
+      filmSoMeAdded = true;
+    }
+
+    // Check if already added from size
+    const existing = items.find(i => i.name === p.name);
+    if (existing) {
+      existing.qty = Math.max(existing.qty, count);
+      existing.source = "both";
+    } else {
+      items.push({ ...p, qty: count, source: "segment" });
+    }
+  });
+
+  return items;
+}
+
 const MOCK_PROPERTIES = {
-  "skovvej 12, 4300 holbæk": { address: "Skovvej 12, 4300 Holbæk", type: "Parcelhus", year: 1972, area: 148, rooms: 5, floors: 1, groundArea: 823, energy: "D", material: "Mursten", roof: "Tegl", price: 2450000, zone: "suburban" },
-  "vestergade 8, 1456 københavn k": { address: "Vestergade 8, 3. th., 1456 København K", type: "Ejerlejlighed", year: 1898, area: 67, rooms: 2, floors: 1, groundArea: 0, energy: "C", material: "Mursten", roof: "Skifer", price: 3850000, zone: "urban" },
-  "præstøvej 45, 4640 faxe": { address: "Præstøvej 45, 4640 Faxe", type: "Parcelhus", year: 1965, area: 112, rooms: 4, floors: 1, groundArea: 1240, energy: "E", material: "Mursten", roof: "Eternit", price: 1350000, zone: "rural" },
-  "strandvejen 88, 2900 hellerup": { address: "Strandvejen 88, 2900 Hellerup", type: "Villa", year: 2018, area: 220, rooms: 6, floors: 2, groundArea: 650, energy: "A2020", material: "Tegl/Træ", roof: "Tagpap", price: 12500000, zone: "urban-premium" },
-  "søndergade 22, 8700 horsens": { address: "Søndergade 22, 2. sal, 8700 Horsens", type: "Ejerlejlighed", year: 2021, area: 85, rooms: 3, floors: 1, groundArea: 0, energy: "A2020", material: "Beton/Glas", roof: "Fladt", price: 2200000, zone: "urban" },
-  "bakkevej 7, 5792 årslev": { address: "Bakkevej 7, 5792 Årslev", type: "Parcelhus", year: 1988, area: 165, rooms: 5, floors: 2, groundArea: 920, energy: "C", material: "Mursten", roof: "Betontagsten", price: 2850000, zone: "suburban" },
+  "skovvej 12, 4300 holbæk": { address:"Skovvej 12, 4300 Holbæk", type:"Parcelhus", year:1972, area:148, rooms:5, floors:1, groundArea:823, energy:"D", material:"Mursten", price:2450000, zone:"suburban", municipality:"Holbæk" },
+  "vestergade 8, 1456 københavn k": { address:"Vestergade 8, 3. th., 1456 København K", type:"Ejerlejlighed", year:1898, area:67, rooms:2, floors:1, groundArea:0, energy:"C", material:"Mursten", price:3850000, zone:"urban", municipality:"København" },
+  "præstøvej 45, 4640 faxe": { address:"Præstøvej 45, 4640 Faxe", type:"Parcelhus", year:1965, area:112, rooms:4, floors:1, groundArea:1240, energy:"E", material:"Mursten", price:1350000, zone:"rural", municipality:"Faxe" },
+  "strandvejen 88, 2900 hellerup": { address:"Strandvejen 88, 2900 Hellerup", type:"Villa", year:2018, area:220, rooms:6, floors:2, groundArea:650, energy:"A2020", material:"Tegl/Træ", price:12500000, zone:"urban-premium", municipality:"Gentofte" },
+  "søndergade 22, 8700 horsens": { address:"Søndergade 22, 2. sal, 8700 Horsens", type:"Ejerlejlighed", year:2021, area:85, rooms:3, floors:1, groundArea:0, energy:"A2020", material:"Beton/Glas", price:2200000, zone:"urban", municipality:"Horsens" },
+  "bakkevej 7, 5792 årslev": { address:"Bakkevej 7, 5792 Årslev", type:"Parcelhus", year:1988, area:165, rooms:5, floors:2, groundArea:920, energy:"C", material:"Mursten", price:2850000, zone:"suburban", municipality:"Faaborg-Midtfyn" },
 };
 
-function scoreBuyer(seg, p) {
-  let s = 10; const t = seg.triggers;
-  if (t.minRooms && p.rooms >= t.minRooms) s += 15;
-  if (t.maxRooms && p.rooms <= t.maxRooms) s += 15;
-  if (t.minArea && p.area >= t.minArea) s += 10;
-  if (t.maxArea && p.area <= t.maxArea) s += 12;
-  if (t.urban && (p.zone === "urban" || p.zone === "urban-premium")) s += 18;
-  if (t.suburban && p.zone === "suburban") s += 18;
-  if (t.rural && p.zone === "rural") s += 20;
-  if (t.maxPrice && p.price <= t.maxPrice) s += 12;
-  if (t.minPrice && p.price >= t.minPrice) s += 12;
-  if (t.garden && p.groundArea > 400) s += 10;
-  if (t.largeGround && p.groundArea > 900) s += 10;
-  if (t.newer && p.year >= 2000) s += 10;
-  if (t.older && p.year < 1980) s += 10;
-  if (t.singleFloor && p.floors === 1) s += 8;
-  if (t.quality && p.zone === "urban-premium") s += 15;
-  if (t.lowPrice && p.price < 1800000) s += 12;
-  if (t.investment && p.rooms <= 3 && (p.zone === "urban" || p.zone === "suburban")) s += 14;
-  if (t.urban && p.zone === "rural") s -= 15;
-  if (t.rural && p.zone === "urban") s -= 15;
-  if (t.maxRooms && p.rooms > t.maxRooms + 2) s -= 10;
-  if (t.minRooms && p.rooms < t.minRooms - 1) s -= 10;
-  if (t.maxPrice && p.price > t.maxPrice * 1.5) s -= 15;
-  if (t.maxArea && p.area > t.maxArea * 1.4) s -= 8;
-  const h = seg.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  s += (h % 7) - 3;
-  return Math.max(0, s);
+// ============================================================
+// UI
+// ============================================================
+function Wave({color="#E8604C",op=0.06,flip=false}) {
+  return <div style={{width:"100%",overflow:"hidden",lineHeight:0,transform:flip?"rotate(180deg)":"none"}}>
+    <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{width:"100%",height:50,display:"block"}}>
+      <path d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,60 L1200,120 L0,120 Z" fill={color} fillOpacity={op}/>
+      <path d="M0,60 C150,20 350,90 600,40 C850,0 1050,80 1200,30 L1200,120 L0,120 Z" fill={color} fillOpacity={op*0.6}/>
+    </svg>
+  </div>;
 }
 
-function predictBuyers(property) {
-  const scores = SEGMENTS.map((seg) => ({ ...seg, rawScore: scoreBuyer(seg, property) }));
-  const total = scores.reduce((sum, s) => sum + s.rawScore, 0);
-  return scores.map((s) => ({ ...s, probability: total > 0 ? Math.round((s.rawScore / total) * 100) : 0 })).sort((a, b) => b.probability - a.probability);
-}
-
-function Wave({ color = "#E8604C", op = 0.06, flip = false }) {
-  return (
-    <div style={{ width: "100%", overflow: "hidden", lineHeight: 0, transform: flip ? "rotate(180deg)" : "none" }}>
-      <svg viewBox="0 0 1200 120" preserveAspectRatio="none" style={{ width: "100%", height: 50, display: "block" }}>
-        <path d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,60 L1200,120 L0,120 Z" fill={color} fillOpacity={op} />
-        <path d="M0,60 C150,20 350,90 600,40 C850,0 1050,80 1200,30 L1200,120 L0,120 Z" fill={color} fillOpacity={op * 0.6} />
-      </svg>
-    </div>
-  );
-}
-
-function PropertyCard({ property }) {
-  const tags = [
-    { l: property.type, i: "🏠" }, { l: property.area + " m²", i: "📐" },
-    { l: property.rooms + " værelser", i: "🚪" }, { l: "Opført " + property.year, i: "📅" },
-    { l: "Energi " + property.energy, i: "⚡" }, { l: property.material, i: "🧱" },
-  ];
-  if (property.groundArea > 0) tags.push({ l: "Grund " + property.groundArea + " m²", i: "🌳" });
-  return (
-    <div style={{ background: "#fff", borderRadius: 16, padding: "28px 32px", marginBottom: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 8px 24px rgba(0,0,0,0.04)", border: "1px solid #f0eeec", position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "linear-gradient(90deg, #E8604C, #D4513E, #C0453A)" }} />
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-        <div>
-          <p style={{ fontFamily: F, fontSize: 11, fontWeight: 600, color: "#E8604C", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.12em" }}>BBR-data · Syntetisk</p>
-          <h2 style={{ fontFamily: F, fontSize: 21, fontWeight: 700, color: "#1a1a2e", margin: 0, letterSpacing: "-0.01em" }}>{property.address}</h2>
+function Bar({segment,rank,maxProb,isTop}) {
+  const [on,setOn]=useState(false);
+  useEffect(()=>{const t=setTimeout(()=>setOn(true),120+rank*90);return()=>clearTimeout(t)},[rank]);
+  const w=maxProb>0?(segment.probability/maxProb)*100:0;
+  return <div style={{opacity:on?1:0,transform:on?"translateY(0)":"translateY(10px)",transition:"all 0.5s cubic-bezier(0.16,1,0.3,1)",marginBottom:4}}>
+    <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:12,background:isTop?"#fdf5f3":"transparent",border:isTop?"1px solid #f5ddd8":"1px solid transparent"}}>
+      <span style={{fontSize:19,width:28,textAlign:"center"}}>{segment.icon}</span>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:5}}>
+          <span style={{fontFamily:F,fontSize:13,fontWeight:isTop?700:500,color:isTop?"#1a1a2e":"#6a6a7e"}}>{segment.label}</span>
+          <span style={{fontFamily:F,fontSize:13,fontWeight:700,color:isTop?"#E8604C":"#aaa",marginLeft:8,whiteSpace:"nowrap"}}>{segment.probability}%</span>
         </div>
-        <div style={{ fontFamily: F, fontSize: 22, fontWeight: 800, color: "#1a1a2e", whiteSpace: "nowrap" }}>
-          {(property.price / 1000000).toFixed(1)} <span style={{ fontSize: 14, fontWeight: 500, color: "#7a7a8e" }}>mio. kr.</span>
+        <div style={{height:5,borderRadius:3,background:"#f0eeec",overflow:"hidden"}}>
+          <div style={{height:"100%",borderRadius:3,background:isTop?"linear-gradient(90deg,"+segment.color+","+segment.color+"bb)":"#d0cec8",width:on?w+"%":"0%",transition:"width 0.9s cubic-bezier(0.16,1,0.3,1)",transitionDelay:(rank*90)+"ms"}}/>
         </div>
       </div>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 18 }}>
-        {tags.map((tag, idx) => (
-          <span key={idx} style={{ display: "inline-flex", alignItems: "center", gap: 5, padding: "5px 12px", borderRadius: 20, fontSize: 12.5, fontWeight: 500, fontFamily: F, background: "#faf8f6", color: "#4a4a5a", border: "1px solid #eeece8" }}>
-            <span style={{ fontSize: 13 }}>{tag.i}</span> {tag.l}
-          </span>
-        ))}
-      </div>
     </div>
-  );
+  </div>;
 }
 
-function Bar({ segment, rank, maxProb, isTop }) {
-  const [on, setOn] = useState(false);
-  useEffect(() => { const t = setTimeout(() => setOn(true), 120 + rank * 90); return () => clearTimeout(t); }, [rank]);
-  const w = maxProb > 0 ? (segment.probability / maxProb) * 100 : 0;
-  return (
-    <div style={{ opacity: on ? 1 : 0, transform: on ? "translateY(0)" : "translateY(10px)", transition: "all 0.5s cubic-bezier(0.16,1,0.3,1)", marginBottom: 4 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 12, background: isTop ? "#fdf5f3" : "transparent", border: isTop ? "1px solid #f5ddd8" : "1px solid transparent" }}>
-        <span style={{ fontSize: 19, width: 28, textAlign: "center" }}>{segment.icon}</span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
-            <span style={{ fontFamily: F, fontSize: 13, fontWeight: isTop ? 700 : 500, color: isTop ? "#1a1a2e" : "#6a6a7e" }}>{segment.label}</span>
-            <span style={{ fontFamily: F, fontSize: 13, fontWeight: 700, color: isTop ? "#E8604C" : "#aaa", marginLeft: 8, whiteSpace: "nowrap" }}>{segment.probability}%</span>
+function PackageView({pkg, customPrices, globalPct}) {
+  if (!pkg || pkg.length === 0) return <p style={{fontFamily:F,fontSize:13,color:"#999",padding:20}}>Ingen produkter matcher dette segment.</p>;
+
+  const catOrder = ["Opstart","Still billede - Premium","Plantegning","Film Web","Film SoMe","Tekst"];
+  const grouped = {};
+  pkg.forEach(item => {
+    const c = item.category || "Andet";
+    if (!grouped[c]) grouped[c] = [];
+    grouped[c].push(item);
+  });
+
+  const sortedCats = Object.keys(grouped).sort((a,b) => {
+    const ai = catOrder.indexOf(a), bi = catOrder.indexOf(b);
+    return (ai===-1?99:ai) - (bi===-1?99:bi);
+  });
+
+  let totalPrice = 0;
+  let totalItems = 0;
+  pkg.forEach(item => {
+    const cp = customPrices[item.name];
+    let unitPrice = (cp !== undefined && cp !== "") ? Number(cp) : item.price;
+    if (globalPct && globalPct !== 0 && (cp === undefined || cp === "")) {
+      unitPrice = Math.round(item.price * (1 + globalPct / 100));
+    }
+    totalPrice += unitPrice * item.qty;
+    totalItems += item.qty;
+  });
+
+  const catIcons = {"Opstart":"🚀","Still billede - Premium":"📸","Plantegning":"📐","Film Web":"🎬","Film SoMe":"📱","Tekst":"✍️"};
+
+  return <div>
+    {sortedCats.map(cat => <div key={cat} style={{marginBottom:16}}>
+      <div style={{fontFamily:F,fontSize:12,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:"#999",marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+        <span>{catIcons[cat]||"📦"}</span>{cat}
+      </div>
+      {grouped[cat].map((item,i) => {
+        const cp = customPrices[item.name];
+        let unitPrice = (cp !== undefined && cp !== "") ? Number(cp) : item.price;
+        if (globalPct && globalPct !== 0 && (cp === undefined || cp === "")) {
+          unitPrice = Math.round(item.price * (1 + globalPct / 100));
+        }
+        const isCustom = (cp !== undefined && cp !== "") || (globalPct && globalPct !== 0);
+        return <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 12px",background:i%2===0?"#faf8f6":"#fff",borderRadius:8,marginBottom:2}}>
+          <div style={{flex:1,minWidth:0}}>
+            <span style={{fontFamily:F,fontSize:13,color:"#1a1a2e",fontWeight:500}}>{item.name}</span>
+            {item.source==="segment" && <span style={{fontSize:10,color:"#E8604C",marginLeft:6,fontWeight:600}}>SEGMENT</span>}
+            {item.source==="size" && <span style={{fontSize:10,color:"#3D5A99",marginLeft:6,fontWeight:600}}>STØRRELSE</span>}
+            {item.source==="both" && <span style={{fontSize:10,color:"#4A7C59",marginLeft:6,fontWeight:600}}>BEGGE</span>}
           </div>
-          <div style={{ height: 5, borderRadius: 3, background: "#f0eeec", overflow: "hidden" }}>
-            <div style={{ height: "100%", borderRadius: 3, background: isTop ? "linear-gradient(90deg," + segment.color + "," + segment.color + "bb)" : "#d0cec8", width: on ? w + "%" : "0%", transition: "width 0.9s cubic-bezier(0.16,1,0.3,1)", transitionDelay: (rank * 90) + "ms" }} />
+          <div style={{display:"flex",alignItems:"center",gap:16,flexShrink:0}}>
+            <span style={{fontFamily:F,fontSize:12,color:"#999"}}>×{item.qty}</span>
+            <span style={{fontFamily:F,fontSize:13,fontWeight:600,color:isCustom?"#2B3A67":"#1a1a2e",minWidth:70,textAlign:"right"}}>
+              {(unitPrice * item.qty).toLocaleString("da-DK")} kr.
+              {isCustom && <span style={{fontSize:9,color:"#E8604C",marginLeft:3}}>✎</span>}
+            </span>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Detail({ segment }) {
-  return (
-    <div style={{ background: "#fff", borderRadius: 14, padding: "22px 26px", marginBottom: 12, boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.03)", border: "1px solid #f0eeec", borderLeft: "4px solid " + segment.color }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-        <span style={{ fontSize: 26, width: 46, height: 46, display: "flex", alignItems: "center", justifyContent: "center", background: segment.color + "10", borderRadius: 12 }}>{segment.icon}</span>
-        <div>
-          <h3 style={{ fontFamily: F, fontSize: 16, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>{segment.label}</h3>
-          <span style={{ fontFamily: F, fontSize: 12, color: segment.color, fontWeight: 600 }}>Alder: {segment.ageRange} · Sandsynlighed: {segment.probability}%</span>
-        </div>
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ fontFamily: F, fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#aaa", marginBottom: 4 }}>Adfærdsprofil</div>
-        <p style={{ fontFamily: F, fontSize: 13.5, lineHeight: 1.6, color: "#4a4a5a", margin: 0 }}>{segment.behavior}</p>
-      </div>
+        </div>;
+      })}
+    </div>)}
+    <div style={{borderTop:"2px solid #E8604C",marginTop:16,paddingTop:16,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
       <div>
-        <div style={{ fontFamily: F, fontSize: 10.5, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.12em", color: "#aaa", marginBottom: 4 }}>Anbefalet content</div>
-        <p style={{ fontFamily: F, fontSize: 13.5, lineHeight: 1.6, color: "#E8604C", margin: 0, fontWeight: 600 }}>{segment.contentRec}</p>
+        <span style={{fontFamily:F,fontSize:14,fontWeight:700,color:"#1a1a2e"}}>{totalItems} produkter i pakken</span>
+      </div>
+      <div style={{textAlign:"right"}}>
+        <div style={{fontFamily:F,fontSize:11,color:"#999",textTransform:"uppercase",letterSpacing:"0.08em"}}>Total pris</div>
+        <div style={{fontFamily:F,fontSize:24,fontWeight:800,color:"#E8604C"}}>{totalPrice.toLocaleString("da-DK")} kr.</div>
       </div>
     </div>
-  );
+  </div>;
 }
 
-function Suggestions({ onSelect }) {
-  const list = [
-    { d: "Skovvej 12, 4300 Holbæk", k: "skovvej 12, 4300 holbæk", s: "Parcelhus · 148m² · 5V" },
-    { d: "Vestergade 8, 1456 Kbh K", k: "vestergade 8, 1456 københavn k", s: "Lejlighed · 67m² · 2V" },
-    { d: "Præstøvej 45, 4640 Faxe", k: "præstøvej 45, 4640 faxe", s: "Parcelhus · 112m² · 4V" },
-    { d: "Strandvejen 88, 2900 Hellerup", k: "strandvejen 88, 2900 hellerup", s: "Villa · 220m² · 6V" },
-    { d: "Søndergade 22, 8700 Horsens", k: "søndergade 22, 2. sal, 8700 horsens", s: "Lejlighed · 85m² · 3V" },
-    { d: "Bakkevej 7, 5792 Årslev", k: "bakkevej 7, 5792 årslev", s: "Parcelhus · 165m² · 5V" },
-  ];
-  return (
-    <div style={{ marginTop: 28 }}>
-      <p style={{ fontFamily: F, fontSize: 11, color: "#999", textTransform: "uppercase", letterSpacing: "0.12em", marginBottom: 12, fontWeight: 700 }}>Prøv en af disse adresser</p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))", gap: 8 }}>
-        {list.map((ex) => (
-          <button key={ex.k} onClick={() => onSelect(ex.k)} style={{ textAlign: "left", padding: "14px 18px", borderRadius: 12, background: "#fff", border: "1px solid #eeece8", cursor: "pointer", transition: "all 0.2s", fontFamily: F, boxShadow: "0 1px 2px rgba(0,0,0,0.03)" }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#E8604C"; e.currentTarget.style.boxShadow = "0 2px 8px rgba(232,96,76,0.12)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#eeece8"; e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.03)"; e.currentTarget.style.transform = "translateY(0)"; }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: "#1a1a2e" }}>{ex.d}</div>
-            <div style={{ fontSize: 12, color: "#999", marginTop: 3 }}>{ex.s}</div>
-          </button>
-        ))}
+function PricingModal({show, onClose, customPrices, setCustomPrices, globalPct, setGlobalPct}) {
+  if (!show) return null;
+  const cats = {};
+  PRODUCTS.forEach(p => {
+    if (p.category === "Gebyr") return;
+    if (!cats[p.category]) cats[p.category] = [];
+    cats[p.category].push(p);
+  });
+  return <div className="modal-overlay" onClick={onClose}>
+    <div className="modal" onClick={e=>e.stopPropagation()}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <h2 style={{fontFamily:F,fontSize:20,fontWeight:700,color:"#1a1a2e",margin:0}}>Mægler-priser</h2>
+        <button onClick={onClose} style={{background:"none",border:"none",fontSize:24,color:"#999",cursor:"pointer"}}>×</button>
       </div>
+      <div style={{padding:"16px 20px",background:"#fef3f1",borderRadius:12,marginBottom:24,display:"flex",alignItems:"center",gap:16,flexWrap:"wrap"}}>
+        <div>
+          <label style={{fontFamily:F,fontSize:12,fontWeight:700,color:"#E8604C",display:"block",marginBottom:4}}>Global prisjustering (%)</label>
+          <div style={{display:"flex",alignItems:"center",gap:6}}>
+            <input type="number" value={globalPct||""} onChange={e=>setGlobalPct(e.target.value===""?0:Number(e.target.value))}
+              placeholder="0" style={{width:80,padding:"8px 12px",borderRadius:8,border:"1px solid #ddd",fontFamily:F,fontSize:14,textAlign:"center"}}/>
+            <span style={{fontFamily:F,fontSize:13,color:"#999"}}>% på alle standardpriser</span>
+          </div>
+        </div>
+      </div>
+      <p style={{fontFamily:F,fontSize:12,color:"#999",marginBottom:16}}>Sæt individuelle priser nedenfor. Individuelle priser overskriver den globale %. Tomt felt = standardpris.</p>
+      {Object.keys(cats).map(cat => <div key={cat} style={{marginBottom:20}}>
+        <div style={{fontFamily:F,fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.1em",color:"#aaa",marginBottom:8,borderBottom:"1px solid #f0eeec",paddingBottom:4}}>{cat}</div>
+        {cats[cat].map((p,i) => <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+          <span style={{fontFamily:F,fontSize:12,color:"#4a4a5a",flex:1,minWidth:0,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{p.name}</span>
+          <span style={{fontFamily:F,fontSize:11,color:"#bbb",width:60,textAlign:"right",flexShrink:0}}>{p.price} kr.</span>
+          <input type="number" value={customPrices[p.name]||""} onChange={e=>{const v={...customPrices};if(e.target.value==="")delete v[p.name];else v[p.name]=e.target.value;setCustomPrices(v)}}
+            placeholder="Din pris" style={{width:90,padding:"5px 8px",borderRadius:6,border:"1px solid #eee",fontFamily:F,fontSize:12,textAlign:"right"}}/>
+        </div>)}
+      </div>)}
+      <button onClick={onClose} style={{width:"100%",padding:"14px",borderRadius:10,border:"none",background:"#E8604C",color:"#fff",fontFamily:F,fontSize:14,fontWeight:700,cursor:"pointer",marginTop:12}}>
+        Gem priser
+      </button>
     </div>
-  );
+  </div>;
+}
+
+function Suggestions({onSelect}) {
+  const list = [
+    {d:"Skovvej 12, 4300 Holbæk",k:"skovvej 12, 4300 holbæk",s:"Parcelhus · 148m² · 5V"},
+    {d:"Vestergade 8, 1456 Kbh K",k:"vestergade 8, 1456 københavn k",s:"Lejlighed · 67m² · 2V"},
+    {d:"Præstøvej 45, 4640 Faxe",k:"præstøvej 45, 4640 faxe",s:"Parcelhus · 112m² · 4V"},
+    {d:"Strandvejen 88, 2900 Hellerup",k:"strandvejen 88, 2900 hellerup",s:"Villa · 220m² · 6V"},
+    {d:"Søndergade 22, 8700 Horsens",k:"søndergade 22, 2. sal, 8700 horsens",s:"Lejlighed · 85m² · 3V"},
+    {d:"Bakkevej 7, 5792 Årslev",k:"bakkevej 7, 5792 årslev",s:"Parcelhus · 165m² · 5V"},
+  ];
+  return <div style={{marginTop:28}}>
+    <p style={{fontFamily:F,fontSize:11,color:"#999",textTransform:"uppercase",letterSpacing:"0.12em",marginBottom:12,fontWeight:700}}>Prøv en af disse adresser</p>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:8}}>
+      {list.map(ex=><button key={ex.k} onClick={()=>onSelect(ex.k)} style={{textAlign:"left",padding:"14px 18px",borderRadius:12,background:"#fff",border:"1px solid #eeece8",cursor:"pointer",transition:"all 0.2s",fontFamily:F,boxShadow:"0 1px 2px rgba(0,0,0,0.03)"}}
+        onMouseEnter={e=>{e.currentTarget.style.borderColor="#E8604C";e.currentTarget.style.transform="translateY(-1px)"}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor="#eeece8";e.currentTarget.style.transform="translateY(0)"}}>
+        <div style={{fontSize:13.5,fontWeight:600,color:"#1a1a2e"}}>{ex.d}</div>
+        <div style={{fontSize:12,color:"#999",marginTop:3}}>{ex.s}</div>
+      </button>)}
+    </div>
+  </div>;
 }
 
 function App() {
-  const [address, setAddress] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [showDetail, setShowDetail] = useState(true);
+  const [address,setAddress]=useState("");
+  const [result,setResult]=useState(null);
+  const [loading,setLoading]=useState(false);
+  const [showPricing,setShowPricing]=useState(false);
+  const [customPrices,setCustomPrices]=useState({});
+  const [globalPct,setGlobalPct]=useState(0);
+  const [loggedIn,setLoggedIn]=useState(false);
+  const [loginName,setLoginName]=useState("");
 
   function go(q) {
-    const n = (q || address).toLowerCase().trim();
-    setLoading(true); setResult(null);
-    setTimeout(() => {
-      const key = Object.keys(MOCK_PROPERTIES).find((k) => n.includes(k) || k.includes(n));
-      if (key) { const p = MOCK_PROPERTIES[key]; setResult({ property: p, buyers: predictBuyers(p) }); setAddress(p.address); }
-      else setResult({ notFound: true });
+    const n=(q||address).toLowerCase().trim();
+    setLoading(true);setResult(null);
+    setTimeout(()=>{
+      const key=Object.keys(MOCK_PROPERTIES).find(k=>n.includes(k)||k.includes(n));
+      if(key){
+        const p=MOCK_PROPERTIES[key];
+        const buyers=predictV2(p);
+        const topSeg=buyers[0];
+        const pkg=buildPackage(topSeg.label,p.area);
+        setResult({property:p,buyers,pkg,topSegLabel:topSeg.label});
+        setAddress(p.address);
+      } else setResult({notFound:true});
       setLoading(false);
-    }, 900);
+    },1100);
   }
 
-  const top3 = result && result.buyers ? result.buyers.filter((b) => b.probability > 0).slice(0, 3) : [];
+  const top3=result&&result.buyers?result.buyers.filter(b=>b.probability>0).slice(0,3):[];
 
-  return (
-    <div style={{ minHeight: "100vh", background: "#faf8f6", color: "#1a1a2e" }}>
+  return <div style={{minHeight:"100vh",background:"#faf8f6",color:"#1a1a2e"}}>
+    <PricingModal show={showPricing} onClose={()=>setShowPricing(false)} customPrices={customPrices} setCustomPrices={setCustomPrices} globalPct={globalPct} setGlobalPct={setGlobalPct}/>
 
-      {/* HEADER */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #f0eeec", padding: "14px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <img src={EFKT_LOGO} alt="EFKT" style={{ height: 30, display: "block" }} />
-          <div style={{ width: 1, height: 22, background: "#e8e6e2" }} />
-          <span style={{ fontFamily: F, fontSize: 13, fontWeight: 600, color: "#7a7a8e", letterSpacing: "0.02em" }}>Most Likely To Buy</span>
-        </div>
-        <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 14px", borderRadius: 20, background: "#fef3f1", color: "#E8604C", fontSize: 11, fontWeight: 700, fontFamily: F, letterSpacing: "0.06em", textTransform: "uppercase" }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#E8604C", animation: "pulse 2s infinite" }} />
-          Prototype
-        </div>
+    {/* HEADER */}
+    <div style={{background:"#fff",borderBottom:"1px solid #f0eeec",padding:"10px 24px",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}}>
+      <div style={{display:"flex",alignItems:"center",gap:14}}>
+        <img src={EFKT_LOGO} alt="EFKT" style={{height:30,display:"block"}}/>
+        <div style={{width:1,height:22,background:"#e8e6e2"}}/>
+        <span style={{fontFamily:F,fontSize:13,fontWeight:600,color:"#7a7a8e"}}>MLTB <span style={{color:"#E8604C",fontWeight:700}}>v2</span></span>
       </div>
-
-      {/* DARK HERO */}
-      <div style={{ background: "linear-gradient(135deg, #1a1a2e 0%, #2B3A67 100%)", padding: "52px 24px 0", textAlign: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: -80, right: -80, width: 260, height: 260, borderRadius: "50%", background: "rgba(232,96,76,0.08)" }} />
-        <div style={{ position: "absolute", bottom: -40, left: -60, width: 180, height: 180, borderRadius: "50%", background: "rgba(232,96,76,0.05)" }} />
-        <div style={{ position: "relative", zIndex: 1, maxWidth: 640, margin: "0 auto" }}>
-          <h1 style={{ fontFamily: F, fontSize: 36, fontWeight: 800, color: "#fff", margin: "0 0 8px", letterSpacing: "-0.02em", lineHeight: 1.15 }}>
-            Forudsig den <span style={{ color: "#E8604C" }}>rette køber</span>
-          </h1>
-          <p style={{ fontFamily: F, fontSize: 15, color: "rgba(255,255,255,0.55)", margin: "0 0 32px", lineHeight: 1.6 }}>
-            Indtast en adresse og se hvilke købersegmenter der med størst sandsynlighed matcher boligen — og få content-anbefalinger der taler til dem.
-          </p>
-          <div style={{ display: "flex", maxWidth: 560, margin: "0 auto", background: "#fff", borderRadius: 14, boxShadow: "0 4px 24px rgba(0,0,0,0.15), 0 1px 3px rgba(0,0,0,0.08)", overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "center", paddingLeft: 18 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            </div>
-            <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} onKeyDown={(e) => e.key === "Enter" && go()} placeholder="Indtast en adresse..."
-              style={{ flex: 1, padding: "16px 14px", border: "none", background: "transparent", color: "#1a1a2e", fontSize: 15, fontFamily: F, outline: "none" }} />
-            <button onClick={() => go()} disabled={loading}
-              style={{ padding: "14px 28px", border: "none", margin: 5, borderRadius: 10, background: loading ? "#ccc" : "#E8604C", color: "#fff", fontFamily: F, fontSize: 14, fontWeight: 700, cursor: loading ? "wait" : "pointer", transition: "all 0.2s", whiteSpace: "nowrap" }}
-              onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = "#D4513E"; }}
-              onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = "#E8604C"; }}>
-              {loading ? "Analyserer..." : "Analysér"}
-            </button>
-          </div>
-        </div>
-        <div style={{ marginTop: 24 }}><Wave /></div>
-      </div>
-
-      {/* CONTENT */}
-      <div style={{ maxWidth: 720, margin: "0 auto", padding: "0 20px 80px" }}>
-        {!result && !loading && <Suggestions onSelect={(k) => { setAddress(k); go(k); }} />}
-        {loading && (
-          <div style={{ textAlign: "center", padding: "56px 0" }}>
-            <div style={{ width: 36, height: 36, margin: "0 auto 14px", border: "3px solid #f0eeec", borderTopColor: "#E8604C", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
-            <p style={{ fontFamily: F, fontSize: 13, color: "#999" }}>Henter BBR-data · Kører segmenteringsmodel...</p>
-          </div>
-        )}
-        {result && result.notFound && (
-          <div style={{ textAlign: "center", padding: "44px 20px", marginTop: 28, background: "#fff", borderRadius: 16, border: "1px solid #f0eeec" }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>🏠</div>
-            <p style={{ fontFamily: F, fontSize: 15, color: "#4a4a5a", fontWeight: 600 }}>Adressen blev ikke fundet i vores syntetiske datasæt.</p>
-            <Suggestions onSelect={(k) => { setAddress(k); go(k); }} />
-          </div>
-        )}
-        {result && result.property && (
-          <div style={{ marginTop: 28, animation: "fadeUp 0.5s ease-out" }}>
-            <PropertyCard property={result.property} />
-            <div style={{ background: "#fff", borderRadius: 16, padding: "24px 28px", marginBottom: 20, boxShadow: "0 1px 3px rgba(0,0,0,0.04), 0 4px 16px rgba(0,0,0,0.03)", border: "1px solid #f0eeec" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                <h3 style={{ fontFamily: F, fontSize: 17, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Købersandsynlighed</h3>
-                <span style={{ fontFamily: F, fontSize: 11, color: "#bbb", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em" }}>{SEGMENTS.length} segmenter · v1.0</span>
-              </div>
-              {result.buyers.filter(b => b.probability > 0).map((seg, i) => <Bar key={seg.id} segment={seg} rank={i} maxProb={result.buyers[0] ? result.buyers[0].probability : 1} isTop={i < 3} />)}
-            </div>
-            <div style={{ margin: "8px 0" }}><Wave flip={true} /></div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, marginTop: 8 }}>
-              <h3 style={{ fontFamily: F, fontSize: 17, fontWeight: 700, color: "#1a1a2e", margin: 0 }}>Top 3 · Profil & <span style={{ color: "#E8604C" }}>Content-anbefaling</span></h3>
-              <button onClick={() => setShowDetail(!showDetail)} style={{ background: "#fff", border: "1px solid #eeece8", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: F, fontSize: 12, fontWeight: 600, color: "#7a7a8e" }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = "#E8604C"}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = "#eeece8"}>
-                {showDetail ? "Skjul" : "Vis"} detaljer
-              </button>
-            </div>
-            {showDetail && top3.map((seg) => <Detail key={seg.id} segment={seg} />)}
-            <div style={{ marginTop: 28, padding: "20px 24px", borderRadius: 12, background: "#fff", border: "1px solid #f0eeec" }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: "#fef3f1", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8604C" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-                </div>
-                <p style={{ fontFamily: F, fontSize: 12, color: "#999", margin: 0, lineHeight: 1.65 }}>
-                  <strong style={{ color: "#7a7a8e" }}>Om modellen:</strong> Denne prototype bruger en regelbaseret scoringsmodel med syntetisk data. I produktion erstattes den med en gradient-boosted classifier (XGBoost/LightGBM) trænet på historiske handler fra Tinglysningen, beriget med BBR, DST og GeoData.
-                </p>
-              </div>
-            </div>
-            <div style={{ textAlign: "center", marginTop: 36, paddingTop: 20, borderTop: "1px solid #f0eeec" }}>
-              <img src={EFKT_LOGO} alt="EFKT" style={{ height: 20, opacity: 0.3, margin: "0 auto", display: "block" }} />
-              <p style={{ fontFamily: F, fontSize: 11, color: "#ccc", marginTop: 6 }}>#WeCreateEFKT</p>
-            </div>
-          </div>
-        )}
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        {loggedIn ? <>
+          <span style={{fontFamily:F,fontSize:12,color:"#4a4a5a"}}>👤 {loginName}</span>
+          <button onClick={()=>setShowPricing(true)} style={{padding:"6px 14px",borderRadius:8,border:"1px solid #E8604C",background:"#fef3f1",color:"#E8604C",fontFamily:F,fontSize:12,fontWeight:700,cursor:"pointer"}}>Mine priser</button>
+          <button onClick={()=>{setLoggedIn(false);setLoginName("")}} style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ddd",background:"#fff",color:"#999",fontFamily:F,fontSize:11,cursor:"pointer"}}>Log ud</button>
+        </> : <>
+          <input type="text" value={loginName} onChange={e=>setLoginName(e.target.value)} placeholder="Mægler-navn" onKeyDown={e=>e.key==="Enter"&&loginName.trim()&&setLoggedIn(true)}
+            style={{padding:"6px 12px",borderRadius:8,border:"1px solid #ddd",fontFamily:F,fontSize:12,width:130}}/>
+          <button onClick={()=>loginName.trim()&&setLoggedIn(true)} style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#E8604C",color:"#fff",fontFamily:F,fontSize:12,fontWeight:700,cursor:"pointer"}}>Log ind</button>
+        </>}
       </div>
     </div>
-  );
+
+    {/* HERO */}
+    <div style={{background:"linear-gradient(135deg,#1a1a2e,#2B3A67)",padding:"48px 24px 0",textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:-80,right:-80,width:260,height:260,borderRadius:"50%",background:"rgba(232,96,76,0.08)"}}/>
+      <div style={{position:"relative",zIndex:1,maxWidth:640,margin:"0 auto"}}>
+        <h1 style={{fontFamily:F,fontSize:34,fontWeight:800,color:"#fff",margin:"0 0 8px",letterSpacing:"-0.02em",lineHeight:1.15}}>
+          Forudsig den <span style={{color:"#E8604C"}}>rette køber</span>
+        </h1>
+        <p style={{fontFamily:F,fontSize:14,color:"rgba(255,255,255,0.5)",margin:"0 0 28px",lineHeight:1.6}}>
+          Bayesian model · Produktpakke-anbefaling · Mæglerpriser
+        </p>
+        <div style={{display:"flex",maxWidth:560,margin:"0 auto",background:"#fff",borderRadius:14,boxShadow:"0 4px 24px rgba(0,0,0,0.15)",overflow:"hidden"}}>
+          <div style={{display:"flex",alignItems:"center",paddingLeft:18}}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <input type="text" value={address} onChange={e=>setAddress(e.target.value)} onKeyDown={e=>e.key==="Enter"&&go()} placeholder="Indtast en adresse..."
+            style={{flex:1,padding:"16px 14px",border:"none",background:"transparent",color:"#1a1a2e",fontSize:15,fontFamily:F,outline:"none"}}/>
+          <button onClick={()=>go()} disabled={loading}
+            style={{padding:"14px 28px",border:"none",margin:5,borderRadius:10,background:loading?"#ccc":"#E8604C",color:"#fff",fontFamily:F,fontSize:14,fontWeight:700,cursor:loading?"wait":"pointer",whiteSpace:"nowrap"}}
+            onMouseEnter={e=>{if(!loading)e.currentTarget.style.background="#D4513E"}}
+            onMouseLeave={e=>{if(!loading)e.currentTarget.style.background="#E8604C"}}>
+            {loading?"Analyserer...":"Analysér"}
+          </button>
+        </div>
+      </div>
+      <div style={{marginTop:24}}><Wave/></div>
+    </div>
+
+    {/* CONTENT */}
+    <div style={{maxWidth:760,margin:"0 auto",padding:"0 20px 80px"}}>
+      {!result&&!loading&&<Suggestions onSelect={k=>{setAddress(k);go(k)}}/>}
+      {loading&&<div style={{textAlign:"center",padding:"56px 0"}}>
+        <div style={{width:36,height:36,margin:"0 auto 14px",border:"3px solid #f0eeec",borderTopColor:"#E8604C",borderRadius:"50%",animation:"spin 0.7s linear infinite"}}/>
+        <p style={{fontFamily:F,fontSize:13,color:"#999"}}>Kører Bayesian model · Bygger produktpakke...</p>
+      </div>}
+
+      {result&&result.notFound&&<div style={{textAlign:"center",padding:"44px 20px",marginTop:28,background:"#fff",borderRadius:16,border:"1px solid #f0eeec"}}>
+        <div style={{fontSize:36,marginBottom:10}}>🏠</div>
+        <p style={{fontFamily:F,fontSize:15,color:"#4a4a5a",fontWeight:600}}>Adressen blev ikke fundet.</p>
+        <Suggestions onSelect={k=>{setAddress(k);go(k)}}/>
+      </div>}
+
+      {result&&result.property&&<div style={{marginTop:28,animation:"fadeUp 0.5s ease-out"}}>
+        {/* Property card */}
+        <div style={{background:"#fff",borderRadius:16,padding:"24px 28px",marginBottom:20,boxShadow:"0 1px 3px rgba(0,0,0,0.06),0 8px 24px rgba(0,0,0,0.04)",border:"1px solid #f0eeec",position:"relative",overflow:"hidden"}}>
+          <div style={{position:"absolute",top:0,left:0,right:0,height:3,background:"linear-gradient(90deg,#E8604C,#D4513E,#C0453A)"}}/>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+            <div>
+              <p style={{fontFamily:F,fontSize:11,fontWeight:600,color:"#E8604C",margin:"0 0 4px",textTransform:"uppercase",letterSpacing:"0.12em"}}>BBR-data · Størrelse: {getSizeBracket(result.property.area)}</p>
+              <h2 style={{fontFamily:F,fontSize:20,fontWeight:700,color:"#1a1a2e",margin:0}}>{result.property.address}</h2>
+            </div>
+            <div style={{fontFamily:F,fontSize:22,fontWeight:800,color:"#1a1a2e"}}>{(result.property.price/1000000).toFixed(1)} <span style={{fontSize:14,fontWeight:500,color:"#7a7a8e"}}>mio.</span></div>
+          </div>
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:14}}>
+            {[result.property.type, result.property.area+" m²", result.property.rooms+"V", "Opført "+result.property.year, "Energi "+result.property.energy, result.property.municipality].map((t,i)=>
+              <span key={i} style={{padding:"4px 10px",borderRadius:16,fontSize:12,fontFamily:F,background:"#faf8f6",color:"#4a4a5a",border:"1px solid #eeece8"}}>{t}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Buyer probabilities */}
+        <div style={{background:"#fff",borderRadius:16,padding:"24px 28px",marginBottom:20,boxShadow:"0 1px 3px rgba(0,0,0,0.04)",border:"1px solid #f0eeec"}}>
+          <h3 style={{fontFamily:F,fontSize:16,fontWeight:700,color:"#1a1a2e",margin:"0 0 14px"}}>Købersandsynlighed</h3>
+          {result.buyers.filter(b=>b.probability>0).map((seg,i)=><Bar key={seg.id} segment={seg} rank={i} maxProb={result.buyers[0]?result.buyers[0].probability:1} isTop={i<3}/>)}
+        </div>
+
+        <div style={{margin:"8px 0"}}><Wave flip={true}/></div>
+
+        {/* PACKAGE RECOMMENDATION */}
+        <div style={{background:"#fff",borderRadius:16,padding:"28px 32px",marginTop:12,boxShadow:"0 1px 3px rgba(0,0,0,0.06),0 8px 24px rgba(0,0,0,0.04)",border:"1px solid #f0eeec"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:20}}>
+            <span style={{fontSize:24}}>📦</span>
+            <div>
+              <h3 style={{fontFamily:F,fontSize:17,fontWeight:700,color:"#1a1a2e",margin:0}}>Anbefalet <span style={{color:"#E8604C"}}>EFKT-pakke</span></h3>
+              <p style={{fontFamily:F,fontSize:12,color:"#999",margin:"2px 0 0"}}>
+                Baseret på segment: <strong style={{color:"#1a1a2e"}}>{result.topSegLabel}</strong> + størrelse: <strong style={{color:"#1a1a2e"}}>{getSizeBracket(result.property.area)}</strong>
+              </p>
+            </div>
+          </div>
+          <PackageView pkg={result.pkg} customPrices={customPrices} globalPct={globalPct}/>
+          {!loggedIn && <p style={{fontFamily:F,fontSize:11,color:"#bbb",marginTop:16,textAlign:"center"}}>Log ind som mægler for at sætte egne priser</p>}
+        </div>
+
+        {/* Footer */}
+        <div style={{textAlign:"center",marginTop:36,paddingTop:20,borderTop:"1px solid #f0eeec"}}>
+          <img src={EFKT_LOGO} alt="EFKT" style={{height:20,opacity:0.3,margin:"0 auto",display:"block"}}/>
+          <p style={{fontFamily:F,fontSize:11,color:"#ccc",marginTop:6}}>#WeCreateEFKT</p>
+        </div>
+      </div>}
+    </div>
+  </div>;
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(<App />);
-  </script>
-</body>
-</html>
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script></body></html>
