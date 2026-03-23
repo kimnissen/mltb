@@ -417,7 +417,7 @@ function App() {
   const [mæglerPass,setMæglerPass]=useState("");
   const [mæglerErr,setMæglerErr]=useState(false);
   const [showMæglerPricing,setShowMæglerPricing]=useState(false);
-  function handleMæglerLogin(){if(mæglerUser==="mægleradmin"&&mæglerPass==="mæglerpassword"){setMæglerAuth(true);setMæglerErr(false)}else setMæglerErr(true)}
+  function handleMæglerLogin(){if(mæglerUser==="mægleradmin"&&mæglerPass==="mæglerpassword"){setMæglerAuth(true);setMæglerErr(false);setShowMæglerPricing(true)}else setMæglerErr(true)}
 
   function go(q) {
     const n=(q||address).toLowerCase().trim();
@@ -492,6 +492,7 @@ function App() {
           <input type="password" value={mæglerPass} onChange={e=>{setMæglerPass(e.target.value);setMæglerErr(false)}} placeholder="Password" onKeyDown={e=>e.key==="Enter"&&handleMæglerLogin()}
             style={{padding:"6px 12px",borderRadius:8,border:mæglerErr?"1px solid #E8604C":"1px solid #ddd",fontFamily:F,fontSize:12,width:100}}/>
           <button onClick={handleMæglerLogin} style={{padding:"6px 14px",borderRadius:8,border:"none",background:"#E8604C",color:"#fff",fontFamily:F,fontSize:12,fontWeight:700,cursor:"pointer"}}>Log ind</button>
+          {mæglerErr&&<span style={{fontFamily:F,fontSize:11,color:"#E8604C",fontWeight:600}}>Forkert login</span>}
         </>}
         <div style={{width:1,height:20,background:"#e8e6e2",margin:"0 2px"}}/>
         <div style={{display:"inline-flex",alignItems:"center",gap:6,padding:"5px 14px",borderRadius:20,background:"#fef3f1",color:"#E8604C",fontSize:11,fontWeight:700,fontFamily:F,letterSpacing:"0.06em",textTransform:"uppercase"}}>
@@ -576,6 +577,9 @@ function App() {
                   <p style={{fontFamily:F,fontSize:11,color:"#999",margin:0}}>Segment: <strong style={{color:"#E8604C"}}>{selectedSeg}</strong></p>
                 </div>
               </div>
+              {mæglerAuth&&(Object.keys(customPrices).length>0||globalPct!==0)&&<div style={{padding:"8px 14px",background:"#E8F4FD",borderRadius:8,marginBottom:12,fontFamily:F,fontSize:11,color:"#2B3A67",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
+                {"\u{1F464}"} Mægler-priser aktive {globalPct!==0&&<span>(global: {globalPct>0?"+":""}{globalPct}%)</span>}
+              </div>}
               <PackageTable pkg={pkg} extras={extras} customPrices={customPrices} globalPct={globalPct} onRemoveExtra={name=>setExtras(extras.filter(e=>e.name!==name))}/>
             </div>
             <AddProductsPanel productData={productData} extras={extras} setExtras={setExtras} area={result.property.area}/>
