@@ -213,7 +213,7 @@ function PackageTable({pkg, extras, customPrices, globalPct, onRemoveExtra}) {
           </div>
           <span style={{fontFamily:F,fontSize:11.5,color:"#999",width:30,textAlign:"center"}}>{"\u00D7"}{item.qty}</span>
           <span style={{fontFamily:F,fontSize:12.5,fontWeight:600,color:isCustom?"#2B3A67":"#1a1a2e",minWidth:65,textAlign:"right"}}>
-            {(up*item.qty).toLocaleString("da-DK")} kr.{isCustom&&<span style={{fontSize:8,color:"#E8604C",marginLeft:2}}>{"\u270E"}</span>}
+            {(up*item.qty).toLocaleString("da-DK",{maximumFractionDigits:0})} kr.{isCustom&&<span style={{fontSize:8,color:"#E8604C",marginLeft:2}}>{"\u270E"}</span>}
           </span>
           {isManual&&<button onClick={()=>onRemoveExtra(item.name)} style={{background:"none",border:"none",color:"#ccc",cursor:"pointer",fontSize:14,padding:"0 4px"}}>{"\u2715"}</button>}
         </div>;
@@ -223,7 +223,7 @@ function PackageTable({pkg, extras, customPrices, globalPct, onRemoveExtra}) {
       <span style={{fontFamily:F,fontSize:13,fontWeight:700,color:"#1a1a2e"}}>{totalItems} produkter</span>
       <div style={{textAlign:"right"}}>
         <div style={{fontFamily:F,fontSize:10,color:"#999",textTransform:"uppercase",letterSpacing:"0.08em"}}>Total</div>
-        <div style={{fontFamily:F,fontSize:22,fontWeight:800,color:"#E8604C"}}>{totalPrice.toLocaleString("da-DK")} kr.</div>
+        <div style={{fontFamily:F,fontSize:22,fontWeight:800,color:"#E8604C"}}>{totalPrice.toLocaleString("da-DK",{maximumFractionDigits:0})} kr.</div>
       </div>
     </div>
   </div>;
