@@ -169,9 +169,7 @@ function SegmentBar({segment, rank, maxProb, isTop, isSelected, onClick}) {
 function PackageTable({pkg, extras, customPrices, globalPct, onRemoveExtra}) {
   const allItems = [...pkg];
   extras.forEach(ex => {
-    const existing = allItems.find(i => i.name === ex.name);
-    if (existing) existing.qty += ex.qty;
-    else allItems.push({...ex, source:"manual"});
+    allItems.push({...ex, source:"manual"});
   });
 
   if (allItems.length === 0) return <p style={{fontFamily:F,fontSize:13,color:"#999",padding:16}}>Ingen produkter i pakken.</p>;
@@ -182,12 +180,12 @@ function PackageTable({pkg, extras, customPrices, globalPct, onRemoveExtra}) {
   allItems.forEach(item=>{const c=item.category||"Andet";if(!grouped[c])grouped[c]=[];grouped[c].push(item)});
   const sortedCats=Object.keys(grouped).sort((a,b)=>{const ai=catOrder.indexOf(a),bi=catOrder.indexOf(b);return(ai===-1?99:ai)-(bi===-1?99:bi)});
 
-  let totalPrice=0, totalItems=0;
+  let totalPrice=0;
   allItems.forEach(item=>{
     const cp=customPrices[item.name];
     let up=(cp!==undefined&&cp!=="")?Number(cp):item.price;
     if(globalPct&&globalPct!==0&&(cp===undefined||cp===""))up=Math.round(item.price*(1+globalPct/100));
-    totalPrice+=up*item.qty; totalItems+=item.qty;
+    totalPrice+=up*item.qty;
   });
 
   function getPrice(item){
@@ -215,12 +213,11 @@ function PackageTable({pkg, extras, customPrices, globalPct, onRemoveExtra}) {
           <span style={{fontFamily:F,fontSize:12.5,fontWeight:600,color:isCustom?"#2B3A67":"#1a1a2e",minWidth:65,textAlign:"right"}}>
             {(up*item.qty).toLocaleString("da-DK",{maximumFractionDigits:0})} kr.{!!isCustom&&<span style={{fontSize:8,color:"#E8604C",marginLeft:2}}>{"\u270E"}</span>}
           </span>
-          {isManual&&<button onClick={()=>onRemoveExtra(item.name)} style={{background:"none",border:"none",color:"#ccc",cursor:"pointer",fontSize:14,padding:"0 4px"}}>{"\u2715"}</button>}
+          {isManual&&<button onClick={()=>onRemoveExtra(item._eid)} style={{background:"none",border:"none",color:"#ccc",cursor:"pointer",fontSize:14,padding:"0 4px"}}>{"\u2715"}</button>}
         </div>;
       })}
     </div>)}
-    <div style={{borderTop:"2px solid #E8604C",marginTop:14,paddingTop:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-      <span style={{fontFamily:F,fontSize:13,fontWeight:700,color:"#1a1a2e"}}>{totalItems} produkter</span>
+    <div style={{borderTop:"2px solid #E8604C",marginTop:14,paddingTop:14,display:"flex",justifyContent:"flex-end",alignItems:"center"}}>
       <div style={{textAlign:"right"}}>
         <div style={{fontFamily:F,fontSize:10,color:"#999",textTransform:"uppercase",letterSpacing:"0.08em"}}>Total</div>
         <div style={{fontFamily:F,fontSize:22,fontWeight:800,color:"#E8604C"}}>{totalPrice.toLocaleString("da-DK",{maximumFractionDigits:0})} kr.</div>
@@ -238,9 +235,7 @@ function AddProductsPanel({productData, extras, setExtras, area}) {
 
   function addProduct(p){
     const ex=[...extras];
-    const existing=ex.find(e=>e.name===p.name);
-    if(existing) existing.qty+=1;
-    else ex.push({...p,qty:1,source:"manual"});
+    ex.push({...p,qty:1,source:"manual",_eid:Date.now()+Math.random()});
     setExtras(ex);
   }
 
@@ -580,7 +575,7 @@ function App() {
               {mæglerAuth&&(Object.keys(customPrices).length>0||globalPct!==0)&&<div style={{padding:"8px 14px",background:"#E8F4FD",borderRadius:8,marginBottom:12,fontFamily:F,fontSize:11,color:"#2B3A67",fontWeight:600,display:"flex",alignItems:"center",gap:6}}>
                 {"\u{1F464}"} Mægler-priser aktive {globalPct!==0&&<span>(global: {globalPct>0?"+":""}{globalPct}%)</span>}
               </div>}
-              <PackageTable pkg={pkg} extras={extras} customPrices={customPrices} globalPct={globalPct} onRemoveExtra={name=>setExtras(extras.filter(e=>e.name!==name))}/>
+              <PackageTable pkg={pkg} extras={extras} customPrices={customPrices} globalPct={globalPct} onRemoveExtra={eid=>setExtras(extras.filter(e=>e._eid!==eid))}/>
             </div>
             <AddProductsPanel productData={productData} extras={extras} setExtras={setExtras} area={result.property.area}/>
           </div>
